@@ -1,13 +1,66 @@
 import random
 from collections import defaultdict
 
-class Individual:
-    def __init__(self, route):
-        self.route = route
-        self.fitness = GA.fitness(self.route)  # Initialize fitness score
-
 
 class GA:
+    
+    ########################################
+    ####### POPULATION REPLACEMENT #########
+    ########################################
+
+    #GENERATIONAL REPLACEMENT    
+    def generational_replacement(self, parents, offspring):
+        """
+        Generational replacement strategy.
+
+        -In this strategy, the entire population of the current
+        generation is replaced by the new generation of individuals (offspring).
+        """
+        # Combines parents and children to form the new population
+        new_population = parents + offspring
+        return new_population
+        
+    # STEADY STATE REPLACEMENT
+    def steady_state_replacement(self, population, offspring):
+        """
+        Steady-state replacement strategy.
+
+        - in this strategy, only a small subset of the population is replaced at each iteration,
+        keeping most of the individuals from the previous generation.
+        Implementation: In the steady-state strategy, at each iteration,
+        some individuals are replaced by the new individuals, retaining part
+        of the previous population.
+        """
+        # Choose one or more individuals from the current population to
+        # replace with offspring
+        replace_indices = random.sample(range(len(population)), len(offspring))
+
+        for idx, offspring_individual in zip(replace_indices, offspring):
+            population[idx] = offspring_individual
+
+        return population
+
+    # REPLACE (WORST)
+    def replace_worst_replacement(self, population, offspring):
+        """
+        Replace worst (GENITOR) replacement strategy.
+
+
+        - In this strategy, only the worst individuals
+        in the population are replaced by the newly generated individuals.
+        At each iteration, the least fit individuals are replaced by
+        the newly generated individuals.
+        """
+        #Combines parents and children to form the new population
+        combined_population = population + offspring
+
+        # Sort the combined population by fitness rating (best to worst) 
+        combined_population.sort(key=lambda x: self.fitness(x))
+
+        # Replace the worst individuals with offspring
+        new_population = combined_population[:len(population)]
+
+        return new_population
     
     ########################################
     ####### SELECTION OF POPULATION ########
@@ -24,11 +77,10 @@ class GA:
             for i, prob in enumerate(selection_probs):
                 cumulative_prob += prob
                 if rand_val <= cumulative_prob:
-                    selected_parents.append(population[i])
+                    selected_parents.append(self.population[i])
                     break
 
         return selected_parents
-
 
     def linear_ranking_selection(self, s=1.5):
         sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
@@ -49,10 +101,9 @@ class GA:
                     break
 
         return selected_parents
-
     
     def exponential_ranking_selection(self, c=0.6):
-        sorted_population = sorted(self.population_size, key=lambda x: x.fitness, reverse=True)
+        sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
         selection_probs = []
 
         for i, _ in enumerate(sorted_population):
@@ -71,7 +122,6 @@ class GA:
 
         return selected_parents
 
-    
     def tournament_selection(self, k=2, p=0.9):
         selected_parents = []
         for _ in range(self.population_size):
@@ -83,7 +133,6 @@ class GA:
                 selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
 
         return selected_parents
-
 
     def uniform_selection(self):
         selected_parents = random.choices(self.population, k=self.population_size)
@@ -169,7 +218,7 @@ class GA:
     ########################################
     
     # CUT-AND-CROSSFILL CROSSOVER
-    def cut_and_crossfill_crossover(parent1, parent2):
+    def cut_and_crossfill_crossover(self, parent1, parent2):
         # Step 1: Select random position i ∈ {1, …, n-2}
         i = random.randint(1, len(parent1) - 2)
 
@@ -190,7 +239,7 @@ class GA:
         return child1, child2
     
     # PARTIALLY MAPPED CROSSOVER (PMX)
-    def partially_mapped_crossover(parent1, parent2):
+    def partially_mapped_crossover(self, parent1, parent2):
         # Step 1: Select two random positions i, j ∈ {1, …, n-1}
         i, j = sorted(random.sample(range(1, len(parent1)), 2))
 
@@ -229,12 +278,12 @@ class GA:
                     child1[idx] = parent2[idx]
 
         # Repeat the process for the second child
-        child2 = partially_mapped_crossover(parent2, parent1)
+        child2 = self.partially_mapped_crossover(parent2, parent1)
 
         return child1, child2
     
     # EDGE CROSSOVER
-    def edge_crossover(parent1, parent2):
+    def edge_crossover(self, parent1, parent2):
         # Step 1: For each value, build a table of adjacent values from both parents
         adjacency_table = defaultdict(set)
 
@@ -282,6 +331,41 @@ class GA:
     
     ########################################
 
+    def get_best_fitness(self):
+        """
+        Get the best fitness score found during the execution of the genetic algorithm.
+        Returns:
+            float: The best fitness score.
+        """
+        if self.best_solution is not None:
+            return self.best_solution['fitness']
+        else:
+            raise ValueError("No best fitness found. Run the genetic algorithm first.")
+    
+    ########################################
+
+    def early_stopping(self, current_fitness):
+        """
+        Early stopping method to check for fitness score improvement.
+        The algorithm will stop if there is no improvement for 3 consecutive rounds.
+        Args:
+            current_fitness: The current fitness score.
+        Returns:
+            bool: True if early stopping criteria met, False otherwise.
+        """
+        if self.best_solution is None or current_fitness < self.best_solution['fitness']:
+            # Update the best solution if the current solution is better
+            self.best_solution = {'fitness': current_fitness, 'population': self.population.copy()}
+            self.consecutive_rounds_no_improvement = 0
+        else:
+            # Increment the counter if there's no improvement
+            self.consecutive_rounds_no_improvement += 1
+
+        # Check if early stopping criteria met
+        return self.consecutive_rounds_no_improvement >= 3
+
+    ########################################
+
     def read_problem_instance(self, problem_path):
         with open(problem_path, 'r') as file:
             lines = file.readlines()
@@ -299,7 +383,8 @@ class GA:
         self.num_vehicles = num_vehicles
         self.distances = distances
         
-        
+    ########################################
+
     #Generate a random route
     #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 10, 7, 'D3', 4, 2, 'D4', 6, 3]
     def generate_route(self):
@@ -309,32 +394,29 @@ class GA:
 
         remaining_locs = self.num_locations
         for i in range(self.num_vehicles):
-            # Add D marker for each vehicle
             routes.append(f"D{i + 1}")
-    
-            # Randomly calculate the number of locations for each vehicle
+
             if i == self.num_vehicles - 1:
                 num_locs_per_vehicle = remaining_locs
             else:
                 num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i - 1))
-    
-            # Add the locations for the current vehicle
+
             vehicle_locs = locations[:num_locs_per_vehicle]
             routes.extend(vehicle_locs)
             locations = locations[num_locs_per_vehicle:]
             remaining_locs -= num_locs_per_vehicle
-        
+
         return routes
 
+    ########################################
+
     def initialize_population(self):
-        population = []
-        for _ in range(self.population_size):
-            individual = self.generate_route()
-            population.append(individual)
+        population = [self.generate_route() for _ in range(self.population_size)]
         
         self.population = population
     
-    
+    ########################################
+
     def fitness(self, route):
         total_distance = 0
         locations_per_vehicle = len(route) // self.num_vehicles
@@ -358,7 +440,6 @@ class GA:
             total_distance += vehicle_distance
     
         return total_distance  # Return total distance as the fitness value
-
 
     ########################################
 
@@ -398,68 +479,17 @@ class GA:
         self.problem_path = problem_path
         self.best_solution = None #Atributo para guardar la mejor solución encontrada
         self.time_deadline = time_deadline # Límite de tiempo (en segundos) para el cómputo del algoritmo genético
-        self.population_size = population_size
+
+        self.random_seed = kwargs.get('random_seed', 42)
+        random.seed(self.random_seed)
+        
+        self.mutation_operator = kwargs.get('mutation_operator', 100)
+        self.crossover_operator = kwargs.get('crossover_operator', 100)
+        self.selection_method = kwargs.get('selection_method', 100)
+        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', 100)
+
+        self.population_size = kwargs.get('population_size', 100)
+        self.cross_rate = kwargs.get('cross_rate', 100)
+        self.mut_rate = kwargs.get('mut_rate', 100)
 
     ########################################
-
-    #POPULATION REPLACEMENT
-
-        #GENERATIONAL REPLACEMENT
-        
-    def generational_replacement(self, parents, offspring):
-        """
-            Generational replacement strategy.
-
-            -In this strategy, the entire population of the current
-            generation is replaced by the new generation of individuals (offspring).
-            """
-            # Combines parents and children to form the new population
-            new_population = parents + offspring
-            return new_population
-        
-
-        
-        # STEADY STATE REPLACEMENT
-
-        def steady_state_replacement(self, population, offspring):
-            """
-            Steady-state replacement strategy.
-
-            - in this strategy, only a small subset of the population is replaced at each iteration,
-            keeping most of the individuals from the previous generation.
-            Implementation: In the steady-state strategy, at each iteration,
-            some individuals are replaced by the new individuals, retaining part
-            of the previous population.
-            """
-            # Choose one or more individuals from the current population to
-            # replace with offspring
-            replace_indices = random.sample(range(len(population)), len(offspring))
-
-            for idx, offspring_individual in zip(replace_indices, offspring)
-                population[idx] = offspring_individual
-
-            return population
-
-
-        # REPLAE (WORST)
-
-        def replace_worst_replacement(self, population, offspring):
-        """
-        Replace worst (GENITOR) replacement strategy.
-
-
-        - In this strategy, only the worst individuals
-        in the population are replaced by the newly generated individuals.
-        At each iteration, the least fit individuals are replaced by
-        the newly generated individuals.
-        """
-        #Combines parents and children to form the new population
-        combined_population = population + offspring
-
-        # Sort the combined population by fitness rating (best to worst) 
-        combined_population.sort(key=lambda x: self.evaluate_fitness(x))
-
-        # Replace the worst individuals with offspring
-        new_population = combined_population[:len(population)]
-
-        return new_population
