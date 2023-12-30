@@ -1,7 +1,93 @@
 import random
 from collections import defaultdict
 
+class Individual:
+    def __init__(self, route):
+        self.route = route
+        self.fitness = GA.fitness(self.route)  # Initialize fitness score
+
+
 class GA:
+    
+    ########################################
+    ####### SELECTION OF POPULATION ########
+    ########################################
+    
+    def roulette_wheel_selection(self):
+        total_fitness = sum(individual.fitness for individual in self.population)
+        selection_probs = [individual.fitness / total_fitness for individual in self.population]
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(population[i])
+                    break
+
+        return selected_parents
+
+
+    def linear_ranking_selection(self, s=1.5):
+        sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
+        selection_probs = []
+
+        for i, _ in enumerate(sorted_population):
+            prob = (2 - s) / self.population_size + (2 * i * (s - 1)) / (self.population_size * (self.population_size - 1))
+            selection_probs.append(prob)
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(sorted_population[i])
+                    break
+
+        return selected_parents
+
+    
+    def exponential_ranking_selection(self, c=0.6):
+        sorted_population = sorted(self.population_size, key=lambda x: x.fitness, reverse=True)
+        selection_probs = []
+
+        for i, _ in enumerate(sorted_population):
+            prob = (c - 1) / ((c ** self.population_size) - 1) * (c ** self.population_size - i - 1)
+            selection_probs.append(prob)
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(sorted_population[i])
+                    break
+
+        return selected_parents
+
+    
+    def tournament_selection(self, k=2, p=0.9):
+        selected_parents = []
+        for _ in range(self.population_size):
+            tournament = random.sample(self.population, k)  # Select k individuals randomly
+            if random.random() < p:
+                best_individual = max(tournament, key=lambda x: x.fitness)  # Select the best individual
+                selected_parents.append(best_individual)
+            else:
+                selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
+
+        return selected_parents
+
+
+    def uniform_selection(self):
+        selected_parents = random.choices(self.population, k=self.population_size)
+        return selected_parents
 
     ########################################
     ############ MUTATIONS #################
@@ -197,11 +283,82 @@ class GA:
     ########################################
 
     def read_problem_instance(self, problem_path):
-        """
-        TODO: Implementar método para leer una instancia del problema
-        y ajustar los atributos internos del objeto necesarios
-        """
-        pass
+        with open(problem_path, 'r') as file:
+            lines = file.readlines()
+
+            # Extract the number of locations and vehicles from the txt
+            num_locations = int(lines[0].split()[1])
+            num_vehicles = int(lines[1].split()[1])
+
+            # Initialize a matrix to store distances between locations
+            distances = []
+            for line in lines[3:]: #Skip the first three lines
+                distances.append(list(map(int, line.split())))
+        
+        self.num_locations = num_locations
+        self.num_vehicles = num_vehicles
+        self.distances = distances
+        
+        
+    #Generate a random route
+    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 10, 7, 'D3', 4, 2, 'D4', 6, 3]
+    def generate_route(self):
+        locations = list(range(1, self.num_locations + 1))
+        random.shuffle(locations)
+        routes = []
+
+        remaining_locs = self.num_locations
+        for i in range(self.num_vehicles):
+            # Add D marker for each vehicle
+            routes.append(f"D{i + 1}")
+    
+            # Randomly calculate the number of locations for each vehicle
+            if i == self.num_vehicles - 1:
+                num_locs_per_vehicle = remaining_locs
+            else:
+                num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i - 1))
+    
+            # Add the locations for the current vehicle
+            vehicle_locs = locations[:num_locs_per_vehicle]
+            routes.extend(vehicle_locs)
+            locations = locations[num_locs_per_vehicle:]
+            remaining_locs -= num_locs_per_vehicle
+        
+        return routes
+
+    def initialize_population(self):
+        population = []
+        for _ in range(self.population_size):
+            individual = self.generate_route()
+            population.append(individual)
+        
+        self.population = population
+    
+    
+    def fitness(self, route):
+        total_distance = 0
+        locations_per_vehicle = len(route) // self.num_vehicles
+    
+        for i in range(self.num_vehicles):
+            start_idx = i * locations_per_vehicle
+            end_idx = start_idx + locations_per_vehicle if i < self.num_vehicles - 1 else len(route)
+            vehicle_route = route[start_idx:end_idx]
+    
+            # Skip 'D' markers while calculating distances for each vehicle
+            filtered_route = [loc for loc in vehicle_route if isinstance(loc, int)]
+    
+            vehicle_distance = 0
+            for j in range(len(filtered_route) - 1):
+                from_loc = filtered_route[j]
+                to_loc = filtered_route[j + 1]
+    
+                # Fetch the distance from the matrix based on 0-indexed locations
+                vehicle_distance += self.distances[from_loc - 1][to_loc - 1]  
+    
+            total_distance += vehicle_distance
+    
+        return total_distance  # Return total distance as the fitness value
+
 
     ########################################
 
@@ -222,10 +379,13 @@ class GA:
         TODO: Se debe implementar aquí la lógica del algoritmo genético
         """
         self.read_problem_instance(self.problem_path)
+        self.initialize_population()
+        
         pass
 
     ########################################
 
+    #in kwargs we should receive population_size
     def __init__(self, time_deadline, problem_path, **kwargs):
         """
         Inicializador de los objetos de la clase. Usar
@@ -238,7 +398,7 @@ class GA:
         self.problem_path = problem_path
         self.best_solution = None #Atributo para guardar la mejor solución encontrada
         self.time_deadline = time_deadline # Límite de tiempo (en segundos) para el cómputo del algoritmo genético
-        #TODO: Completar método para configurar el algoritmo genético (e.g., seleccionar cruce, mutación, etc.)
+        self.population_size = population_size
 
     ########################################
 
@@ -246,7 +406,7 @@ class GA:
 
         #GENERATIONAL REPLACEMENT
         
-        def generational_replacement(self, parents, offspring):
+    def generational_replacement(self, parents, offspring):
         """
             Generational replacement strategy.
 
@@ -255,7 +415,6 @@ class GA:
             """
             # Combines parents and children to form the new population
             new_population = parents + offspring
-
             return new_population
         
 
@@ -304,12 +463,3 @@ class GA:
         new_population = combined_population[:len(population)]
 
         return new_population
-
-
-
-        
-        
-
-
-    
-
