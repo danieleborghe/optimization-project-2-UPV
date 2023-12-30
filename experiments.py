@@ -48,16 +48,18 @@ EXPONENTIAL_RANKING_ALPHA = (1.5, 2.0, 2.5)
 LAMBDA_VALUE = (5, 10, 20)
 MU_VALUE = (2, 5, 10)
 
+RANDOM_SEED = 42
+
 # define a function for run a configuration of the genetic algorithm
 def run_single_configuration(configuration, instance):
     total_fitness = 0                                       # initalize total fitness as 0
     elapsed_times = []
     # repeat the process for the predefined number of runs
     for _ in range(N_RUNS):
-        ga = GA(TIME_DEADLINE, instance, **configuration)   # genetic algorithm
+        ga = GA(TIME_DEADLINE, instance, random_seed = RANDOM_SEED, **configuration)   # genetic algorithm
         start_time = time.time()                            # register starting time
         ga.run()                                            # run the algorithm
-        total_fitness += ga.get_best_fitness()             # get the best fitness from the GA
+        total_fitness += ga.get_best_fitness()               # get the best fitness from the GA
         elapsed_time = time.time() - start_time             # get the elapsed time
         elapsed_times.append(elapsed_time)
 
