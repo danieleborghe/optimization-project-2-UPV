@@ -62,6 +62,31 @@ class GA:
 
         return new_population
     
+    # ELITISM REPLACEMENT 
+    def elitism_replacement(self, parents, offspring, elite_percentage=0.1):
+        num_elites = int(elite_percentage * len(parents))
+        elites = sorted(parents, key=self.fitness)[:num_elites]
+        new_population = elites + offspring
+
+        return new_population
+    
+    # ROUND-ROBIN REPLACEMENT
+    def round_robin_replacement(self, parents, offspring):
+        new_population = parents.copy()
+      
+        for i in range(0, len(parents), len(offspring)):
+          new_population[i:i+len(offspring)] = offspring
+
+        return new_population
+    
+    # 𝝀-𝝁 REPLACEMENT
+    def lambda_mu_replacement(self, parents, offspring, mu):
+        combined_population = parents + offspring
+        combined_population.sort(key=self.fitness)
+        new_population = combined_population[:mu]
+
+        return new_population
+
     ########################################
     ####### SELECTION OF POPULATION ########
     ########################################
