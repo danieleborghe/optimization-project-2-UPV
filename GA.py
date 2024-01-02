@@ -411,9 +411,10 @@ class GA:
     ########################################
 
     #Generate a random route
-    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 10, 7, 'D3', 4, 2, 'D4', 6, 3]
+    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 7, 'D3', 4, 2, 'D4', 6, 3] 
+    #OBS! Note that we only vist 9 locations since the first one is the depot
     def generate_route(self):
-        locations = list(range(1, self.num_locations + 1))
+        locations = list(range(1, self.num_locations))
         random.shuffle(locations)
         routes = []
 
@@ -424,7 +425,7 @@ class GA:
             if i == self.num_vehicles - 1:
                 num_locs_per_vehicle = remaining_locs
             else:
-                num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i - 1))
+                num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i))
 
             vehicle_locs = locations[:num_locs_per_vehicle]
             routes.extend(vehicle_locs)
