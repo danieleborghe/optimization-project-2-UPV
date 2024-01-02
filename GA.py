@@ -1,7 +1,167 @@
 import random
 from collections import defaultdict
 
+
 class GA:
+    
+    ########################################
+    ####### POPULATION REPLACEMENT #########
+    ########################################
+
+    #GENERATIONAL REPLACEMENT    
+    def generational_replacement(self, parents, offspring):
+        """
+        Generational replacement strategy.
+
+        -In this strategy, the entire population of the current
+        generation is replaced by the new generation of individuals (offspring).
+        """
+        # Combines parents and children to form the new population
+        new_population = parents + offspring
+        return new_population
+        
+    # STEADY STATE REPLACEMENT
+    def steady_state_replacement(self, population, offspring):
+        """
+        Steady-state replacement strategy.
+
+        - in this strategy, only a small subset of the population is replaced at each iteration,
+        keeping most of the individuals from the previous generation.
+        Implementation: In the steady-state strategy, at each iteration,
+        some individuals are replaced by the new individuals, retaining part
+        of the previous population.
+        """
+        # Choose one or more individuals from the current population to
+        # replace with offspring
+        replace_indices = random.sample(range(len(population)), len(offspring))
+
+        for idx, offspring_individual in zip(replace_indices, offspring):
+            population[idx] = offspring_individual
+
+        return population
+
+    # REPLACE (WORST)
+    def replace_worst_replacement(self, population, offspring):
+        """
+        Replace worst (GENITOR) replacement strategy.
+
+
+        - In this strategy, only the worst individuals
+        in the population are replaced by the newly generated individuals.
+        At each iteration, the least fit individuals are replaced by
+        the newly generated individuals.
+        """
+        #Combines parents and children to form the new population
+        combined_population = population + offspring
+
+        # Sort the combined population by fitness rating (best to worst) 
+        combined_population.sort(key=lambda x: self.fitness(x))
+
+        # Replace the worst individuals with offspring
+        new_population = combined_population[:len(population)]
+
+        return new_population
+    
+    # ELITISM REPLACEMENT 
+    def elitism_replacement(self, parents, offspring, elite_percentage=0.1):
+        num_elites = int(elite_percentage * len(parents))
+        elites = sorted(parents, key=self.fitness)[:num_elites]
+        new_population = elites + offspring
+
+        return new_population
+    
+    # ROUND-ROBIN REPLACEMENT
+    def round_robin_replacement(self, parents, offspring):
+        new_population = parents.copy()
+      
+        for i in range(0, len(parents), len(offspring)):
+          new_population[i:i+len(offspring)] = offspring
+
+        return new_population
+    
+    # 𝝀-𝝁 REPLACEMENT
+    def lambda_mu_replacement(self, parents, offspring, mu):
+        combined_population = parents + offspring
+        combined_population.sort(key=self.fitness)
+        new_population = combined_population[:mu]
+
+        return new_population
+
+    ########################################
+    ####### SELECTION OF POPULATION ########
+    ########################################
+    
+    def roulette_wheel_selection(self):
+        total_fitness = sum(individual.fitness for individual in self.population)
+        selection_probs = [individual.fitness / total_fitness for individual in self.population]
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(self.population[i])
+                    break
+
+        return selected_parents
+
+    def linear_ranking_selection(self, s=1.5):
+        sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
+        selection_probs = []
+
+        for i, _ in enumerate(sorted_population):
+            prob = (2 - s) / self.population_size + (2 * i * (s - 1)) / (self.population_size * (self.population_size - 1))
+            selection_probs.append(prob)
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(sorted_population[i])
+                    break
+
+        return selected_parents
+    
+    def exponential_ranking_selection(self, c=0.6):
+        sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
+        selection_probs = []
+
+        for i, _ in enumerate(sorted_population):
+            prob = (c - 1) / ((c ** self.population_size) - 1) * (c ** self.population_size - i - 1)
+            selection_probs.append(prob)
+
+        selected_parents = []
+        for _ in range(self.population_size):
+            rand_val = random.random()  # Generate a random value between 0 and 1
+            cumulative_prob = 0
+            for i, prob in enumerate(selection_probs):
+                cumulative_prob += prob
+                if rand_val <= cumulative_prob:
+                    selected_parents.append(sorted_population[i])
+                    break
+
+        return selected_parents
+
+    def tournament_selection(self, k=2, p=0.9):
+        selected_parents = []
+        for _ in range(self.population_size):
+            tournament = random.sample(self.population, k)  # Select k individuals randomly
+            if random.random() < p:
+                best_individual = max(tournament, key=lambda x: x.fitness)  # Select the best individual
+                selected_parents.append(best_individual)
+            else:
+                selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
+
+        return selected_parents
+
+    def uniform_selection(self):
+        selected_parents = random.choices(self.population, k=self.population_size)
+        return selected_parents
 
     ########################################
     ############ MUTATIONS #################
@@ -83,7 +243,7 @@ class GA:
     ########################################
     
     # CUT-AND-CROSSFILL CROSSOVER
-    def cut_and_crossfill_crossover(parent1, parent2):
+    def cut_and_crossfill_crossover(self, parent1, parent2):
         # Step 1: Select random position i ∈ {1, …, n-2}
         i = random.randint(1, len(parent1) - 2)
 
@@ -104,7 +264,7 @@ class GA:
         return child1, child2
     
     # PARTIALLY MAPPED CROSSOVER (PMX)
-    def partially_mapped_crossover(parent1, parent2):
+    def partially_mapped_crossover(self, parent1, parent2):
         # Step 1: Select two random positions i, j ∈ {1, …, n-1}
         i, j = sorted(random.sample(range(1, len(parent1)), 2))
 
@@ -143,12 +303,12 @@ class GA:
                     child1[idx] = parent2[idx]
 
         # Repeat the process for the second child
-        child2 = partially_mapped_crossover(parent2, parent1)
+        child2 = self.partially_mapped_crossover(parent2, parent1)
 
         return child1, child2
     
     # EDGE CROSSOVER
-    def edge_crossover(parent1, parent2):
+    def edge_crossover(self, parent1, parent2):
         # Step 1: For each value, build a table of adjacent values from both parents
         adjacency_table = defaultdict(set)
 
@@ -196,12 +356,115 @@ class GA:
     
     ########################################
 
+    def get_best_fitness(self):
+        """
+        Get the best fitness score found during the execution of the genetic algorithm.
+        Returns:
+            float: The best fitness score.
+        """
+        if self.best_solution is not None:
+            return self.best_solution['fitness']
+        else:
+            raise ValueError("No best fitness found. Run the genetic algorithm first.")
+    
+    ########################################
+
+    def early_stopping(self, current_fitness):
+        """
+        Early stopping method to check for fitness score improvement.
+        The algorithm will stop if there is no improvement for 3 consecutive rounds.
+        Args:
+            current_fitness: The current fitness score.
+        Returns:
+            bool: True if early stopping criteria met, False otherwise.
+        """
+        if self.best_solution is None or current_fitness < self.best_solution['fitness']:
+            # Update the best solution if the current solution is better
+            self.best_solution = {'fitness': current_fitness, 'population': self.population.copy()}
+            self.consecutive_rounds_no_improvement = 0
+        else:
+            # Increment the counter if there's no improvement
+            self.consecutive_rounds_no_improvement += 1
+
+        # Check if early stopping criteria met
+        return self.consecutive_rounds_no_improvement >= 3
+
+    ########################################
+
     def read_problem_instance(self, problem_path):
-        """
-        TODO: Implementar método para leer una instancia del problema
-        y ajustar los atributos internos del objeto necesarios
-        """
-        pass
+        with open(problem_path, 'r') as file:
+            lines = file.readlines()
+
+            # Extract the number of locations and vehicles from the txt
+            num_locations = int(lines[0].split()[1])
+            num_vehicles = int(lines[1].split()[1])
+
+            # Initialize a matrix to store distances between locations
+            distances = []
+            for line in lines[3:]: #Skip the first three lines
+                distances.append(list(map(int, line.split())))
+        
+        self.num_locations = num_locations
+        self.num_vehicles = num_vehicles
+        self.distances = distances
+        
+    ########################################
+
+    #Generate a random route
+    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 10, 7, 'D3', 4, 2, 'D4', 6, 3]
+    def generate_route(self):
+        locations = list(range(1, self.num_locations + 1))
+        random.shuffle(locations)
+        routes = []
+
+        remaining_locs = self.num_locations
+        for i in range(self.num_vehicles):
+            routes.append(f"D{i + 1}")
+
+            if i == self.num_vehicles - 1:
+                num_locs_per_vehicle = remaining_locs
+            else:
+                num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i - 1))
+
+            vehicle_locs = locations[:num_locs_per_vehicle]
+            routes.extend(vehicle_locs)
+            locations = locations[num_locs_per_vehicle:]
+            remaining_locs -= num_locs_per_vehicle
+
+        return routes
+
+    ########################################
+
+    def initialize_population(self):
+        population = [self.generate_route() for _ in range(self.population_size)]
+        
+        self.population = population
+    
+    ########################################
+
+    def fitness(self, route):
+        total_distance = 0
+        locations_per_vehicle = len(route) // self.num_vehicles
+    
+        for i in range(self.num_vehicles):
+            start_idx = i * locations_per_vehicle
+            end_idx = start_idx + locations_per_vehicle if i < self.num_vehicles - 1 else len(route)
+            vehicle_route = route[start_idx:end_idx]
+    
+            # Skip 'D' markers while calculating distances for each vehicle
+            filtered_route = [loc for loc in vehicle_route if isinstance(loc, int)]
+    
+            vehicle_distance = 0
+            for j in range(len(filtered_route) - 1):
+                from_loc = filtered_route[j]
+                to_loc = filtered_route[j + 1]
+    
+                # Fetch the distance from the matrix based on 0-indexed locations
+                vehicle_distance += self.distances[from_loc - 1][to_loc - 1]  
+    
+            total_distance += vehicle_distance
+    
+        return total_distance  # Return total distance as the fitness value
 
     ########################################
 
@@ -235,10 +498,13 @@ class GA:
         TODO: Se debe implementar aquí la lógica del algoritmo genético
         """
         self.read_problem_instance(self.problem_path)
+        self.initialize_population()
+        
         pass
 
     ########################################
 
+    #in kwargs we should receive population_size
     def __init__(self, time_deadline, problem_path, **kwargs):
         """
         Inicializador de los objetos de la clase. Usar
@@ -251,11 +517,7 @@ class GA:
         self.problem_path = problem_path
         self.best_solution = None #Atributo para guardar la mejor solución encontrada
         self.time_deadline = time_deadline # Límite de tiempo (en segundos) para el cómputo del algoritmo genético
-        #TODO: Completar método para configurar el algoritmo genético (e.g., seleccionar cruce, mutación, etc.)
-
-<<<<<<< Updated upstream
-    ########################################
-=======
+        
         self.random_seed = kwargs.get('random_seed', 0)
         random.seed(self.random_seed)
         
@@ -263,8 +525,9 @@ class GA:
         self.crossover_operator = kwargs.get('crossover_operator', 100)
         self.selection_method = kwargs.get('selection_method', 100)
         self.population_replacement_strategy = kwargs.get('population_replacement_strategy', 100)
->>>>>>> Stashed changes
 
+        self.population_size = kwargs.get('population_size', 100)
+        self.cross_rate = kwargs.get('cross_rate', 100)
+        self.mut_rate = kwargs.get('mut_rate', 100)
 
-    
-
+    ########################################
