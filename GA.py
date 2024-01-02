@@ -469,12 +469,25 @@ class GA:
     ########################################
 
     def get_best_solution(self):
-        """
-        Método para devolver la mejor solución encontrada hasta
-        el momento
-        """
-        #TODO
-        pass
+        result = []
+        current_group = []
+        if self.best_solution is not None:
+            for item in self.best_solution:
+                if isinstance(item, str):
+                    if current_group:
+                        current_group.append(1)
+                        result.append(current_group)
+                        current_group = []
+                else:
+                    current_group.append(item)
+
+            if current_group:
+                current_group.append(1)
+                result.append(current_group)
+
+            return result
+        else:
+             raise ValueError("No best solution found. Run the genetic algorithm first.")
 
     ########################################
 
@@ -504,8 +517,8 @@ class GA:
         self.problem_path = problem_path
         self.best_solution = None #Atributo para guardar la mejor solución encontrada
         self.time_deadline = time_deadline # Límite de tiempo (en segundos) para el cómputo del algoritmo genético
-
-        self.random_seed = kwargs.get('random_seed', 42)
+        
+        self.random_seed = kwargs.get('random_seed', 0)
         random.seed(self.random_seed)
         
         self.mutation_operator = kwargs.get('mutation_operator', 100)
