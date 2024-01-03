@@ -1,8 +1,6 @@
 import random
 from collections import defaultdict
 import time
-
-
 class GA:
 
     ########################################
@@ -74,9 +72,8 @@ class GA:
                 selected_parents.append(best_individual)
             else:
                 selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
-
         return selected_parents
-
+        
     def uniform_selection(self):
         selected_parents = random.choices(self.population, k=self.population_size)
         return selected_parents
@@ -93,25 +90,64 @@ class GA:
         offspring = []
 
         for i in range(0, len(parents), 2):
-            parent1, parent2 = parents[i], parents[i + 1]
-            # Step 1: Select random position i ∈ {1, …, n-2}
-            crossover_point = random.randint(1, len(parent1) - 2)
+            parent1_orig, parent2_orig = parents[i].copy(), parents[i + 1].copy()
 
-            # Ensure the first element of the parents remains the first element of the children
-            child1 = [parent1[0]] + parent1[1:crossover_point] + parent2[crossover_point:]
-            child2 = [parent2[0]] + parent2[1:crossover_point] + parent1[crossover_point:]
+            parent1 = [value for value in parent1_orig if not isinstance(value, str)]
+            parent2 = [value for value in parent2_orig if not isinstance(value, str)]
 
-            # Step 3: Scan from the second segment of parent 2 and fill with values not present in child 1
-            for gene in parent2[crossover_point:] + parent2[1:crossover_point]:
-                if gene not in child1:
-                    child1.append(gene)
+            # Step 1: Select random position
+            position = random.randint(1, len(parent1) - 2)
 
-            # Step 4: Do the same for parent 1 and child 2
-            for gene in parent1[crossover_point:] + parent1[1:crossover_point]:
-                if gene not in child2:
-                    child2.append(gene)
+            if len(parent1) != len(parent2):
+                raise ValueError("Parents must have the same length")
 
-            offspring.extend([child1, child2])
+            # Initialize children as copies of parents
+            child1 = parent1[:position].copy()
+            child2 = parent2[:position].copy()
+
+            # Step 3: Fill remaining values in child1 from parent2
+            for value in parent2:
+                if value not in child1:
+                    child1.append(value)
+
+            # Step 4: Fill remaining values in child2 from parent1
+            for value in parent1:
+                if value not in child2:
+                    child2.append(value)
+
+            child1_new = []
+            index = 0
+            for el in parent1_orig:
+                if isinstance(el, int):
+                    child1_new.append(child1[index])
+                    index += 1
+                else:
+                    child1_new.append(el)
+            
+            child2_new = []
+            index = 0
+            for el in parent2_orig:
+                if isinstance(el, int):
+                    child2_new.append(child2[index])
+                    index += 1
+                else:
+                    child2_new.append(el)
+
+
+            assert len(parent1_orig) == len(child1_new)
+            assert len(parent2_orig) == len(child2_new)
+
+            assert all(element in parent1_orig for element in child1_new)
+            assert all(element in parent2_orig for element in child2_new)
+
+            #print("cd1", child1)
+            #print("cd2", child2)
+
+            #print("cd1", child1_new)
+            #print("cd2", child2_new)
+
+
+            offspring.extend([child1_new, child2_new])
 
         return offspring
 
@@ -243,8 +279,13 @@ class GA:
 
     # SWAP MUTATION
     def swap_mutation(self, parent):
+
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
+
         # Step 1: Copy parent into child
         child = parent.copy()
+        #print("child", child)
 
         # Step 2: Randomly select position i ∈ {1, …, n}
         i = random.randint(1, len(child) - 1)
@@ -256,10 +297,25 @@ class GA:
         # Step 4: Exchange content between positions i and j
         child[i], child[j] = child[j], child[i]
 
-        return child
+
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
+        assert len(parent_orig) == len(child_new)
+        assert all(element in parent_orig for element in child_new)
+
+        return child_new
 
     # INSERTION MUTATION
     def insertion_mutation(self, parent):
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
         # Step 1: Copy parent into child
         child = parent.copy()
 
@@ -274,10 +330,24 @@ class GA:
         moved_element = child.pop(j)
         child.insert(i + 1, moved_element)
 
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
+        assert len(parent_orig) == len(child_new)
+        assert all(element in parent_orig for element in child_new)
+
         return child
     
     # SCRAMBLE MUTATION
     def scramble_mutation(self, parent):
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
         # Step 1: Copy parent into child
         child = parent.copy()
 
@@ -293,10 +363,24 @@ class GA:
         random.shuffle(subsequence)
         child[i:j + 1] = subsequence
 
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
+        assert len(parent_orig) == len(child_new)
+        assert all(element in parent_orig for element in child_new)
+
         return child
     
     # INVERSION MUTATION
     def inversion_mutation(self, parent):
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
         # Step 1: Copy parent into child
         child = parent.copy()
 
@@ -309,6 +393,18 @@ class GA:
 
         # Step 4: Invert order between positions i and j
         child[i:j + 1] = reversed(child[i:j + 1])
+
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
+        assert len(parent_orig) == len(child_new)
+        assert all(element in parent_orig for element in child_new)
 
         return child
 
@@ -396,29 +492,7 @@ class GA:
         return new_population
 
     ########################################
-    #######                        #########
-    ########################################
-
-    def early_stopping(self, current_fitness):
-        """
-        Early stopping method to check for fitness score improvement.
-        The algorithm will stop if there is no improvement for 3 consecutive rounds.
-        Args:
-            current_fitness: The current fitness score.
-        Returns:
-            bool: True if early stopping criteria met, False otherwise.
-        """
-        if self.best_solution is None or current_fitness < self.best_solution():
-            # Update the best solution if the current solution is better
-            self.best_solution = {'fitness': current_fitness, 'population': self.population.copy()}
-            self.consecutive_rounds_no_improvement = 0
-        else:
-            # Increment the counter if there's no improvement
-            self.consecutive_rounds_no_improvement += 1
-
-        # Check if early stopping criteria met
-        return self.consecutive_rounds_no_improvement >= 3
-
+    ########### MAIN FUNCTIONS #############
     ########################################
 
     def read_problem_instance(self, problem_path):
@@ -431,53 +505,65 @@ class GA:
 
             # Initialize a matrix to store distances between locations
             distance_matrix = []
-            for line in lines[3:]: #Skip the first three lines
-                distance_matrix.append(list(map(int, line.split())))
-        
+            for line in lines[3:]:  # Skip the first three lines
+                # Transform values equal to 9999 to 0
+                distances = [0 if value == "9999" else int(value) for value in line.split()]
+                distance_matrix.append(distances)
+
         self.num_locations = num_locations
         self.num_vehicles = num_vehicles
         self.distance_matrix = distance_matrix
-        
+    
     ########################################
-
+        
     #Generate a random route
-    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 1, 7, 'D3', 4, 2, 'D4', 6, 3] 
+    #4 vehicles, 10 locations: ['D1', 5, 9, 8, 'D2', 7, 'D3', 4, 2, 'D4', 6, 3] 
     #OBS! Note that we only vist 9 locations since the first one is the depot
+
+    
     def generate_route(self):
+        individual = [0 for _ in range (1, self.num_locations + self.num_vehicles)]
+
+        individual[0] = "D"
+
+        possibile_depot_positions_1 = range(2, len(individual)-2, 2)
+        possibile_depot_positions_2 = range(3, len(individual)-1, 2)
+
+        chosen_possible_positions = random.choice([possibile_depot_positions_1, possibile_depot_positions_2])
+
+        depot_positions = random.sample(chosen_possible_positions, self.num_vehicles - 1)
+
+        for i in depot_positions:
+            individual[i] = "D"
+        
+        # generate locations list
         locations = list(range(1, self.num_locations))
+        # shuffle locations
         random.shuffle(locations)
-        routes = []
 
-        remaining_locs = self.num_locations
-        for i in range(self.num_vehicles):
-            routes.append(f"D{i + 1}")
-
-            if i == self.num_vehicles - 1:
-                num_locs_per_vehicle = remaining_locs
-            else:
-                num_locs_per_vehicle = random.randint(1, remaining_locs - (self.num_vehicles - i))
-
-            vehicle_locs = locations[:num_locs_per_vehicle]
-            routes.extend(vehicle_locs)
-            locations = locations[num_locs_per_vehicle:]
-            remaining_locs -= num_locs_per_vehicle
-
-        return routes
+        individual = [element if element != 0 else locations.pop(0) for element in individual]
+        
+        #print("individual", individual)
+        return individual
+        
 
     ########################################
 
     def initialize_population(self):
         population = [self.generate_route() for _ in range(self.population_size)]
+        # Assert that all members in the population have the same length
+        assert all(len(route) == len(population[0]) for route in population), "All routes must have the same length"
         self.population = population
         self.best_solution = self.get_best_solution()
-    
-    ########################################
 
+    ########################################
+        
     def fitness(self, route):
         # Change depot representations to 0
         route = [0 if isinstance(element, str) else element for element in route]
-
+        # initialize total distance as 0
         total_distance = 0    
+
         for i in range(len(route)-1):
             from_loc = route[i]
             to_loc = route[i+1]
@@ -491,57 +577,81 @@ class GA:
 
     ########################################
 
+    def get_best_solution(self):
+        """
+        Method to return the best solution found so far.
+        """
+        best_solution = min(self.population, key=self.fitness)
+        best_solution = [0 if isinstance(element, str) else element for element in best_solution]
+        
+        best_solution_transformed = []
+        current_route = [0]
+
+        for item in best_solution[1:]:
+            current_route.append(item)
+            if item == 0:
+                best_solution_transformed.append(current_route)
+                current_route = [0]
+
+        current_route.append(0)
+        best_solution_transformed.append(current_route)
+
+        return best_solution_transformed
+
+    ########################################
+
     def get_best_fitness(self):
         """
         Get the best fitness score found during the execution of the genetic algorithm.
         Returns:
             float: The best fitness score.
         """
-        best_fitness = self.fitness(self.get_best_solution())
+        best_fitness = min(self.fitness(solution) for solution in self.population)
+
         return best_fitness
     
     ########################################
-
-    def get_best_solution(self):
-        """
-        Method to return the best solution found so far.
-        """
-        best_route = min(self.population, key=self.fitness)
-        best_route = [0 if isinstance(element, str) else element for element in best_route]
-
-        #TODO: return list with this format instead: [[0, 9, 13, 0], [0, 11, 5, 0], [0, 1, 12, 7, 6, 8, 2, 0]]
-            
-        return best_route
-
-    ########################################
-
+    
     def run(self):
         """
         Método que ejecuta el algoritmo genético. Debe crear la población inicial y
         ejecutar el bucle principal del algoritmo genético
         TODO: Se debe implementar aquí la lógica del algoritmo genético
         """
-        self.read_problem_instance(self.problem_path)
-        self.initialize_population()
         
-        start_time = time.time()
-        current_generation = 0
+        self.read_problem_instance(self.problem_path)   # read the problem instance
+        self.initialize_population()                    # initialize the population
 
-        while time.time() - start_time < self.time_deadline:
-            
+        start_time = time.time()                    # get starting time
+        current_generation = 0                      # set current generation to 0
+        previous_fitness = float('inf')             # initialize previous fitness to positive infinity
+        consecutive_no_improvement = 0
+
+        #while time.time() - start_time < self.time_deadline:
+        while time.time() - start_time < self.time_deadline and consecutive_no_improvement < 150:
             # Selection: Choose tours from the current population to act as parents for the next generation
-            selected_parents = self.tournament_selection()
-
+            selected_parents = self.uniform_selection()
             # Crossover: Create new offspring from two parents.
             offspring = self.cut_and_crossfill_crossover(selected_parents)
 
             # Mutation: Make small changes to the offspring
-            offspring = self.swap_mutation(selected_parents)
-
-            # Replacement: Create new population from current population and the offspring
+            offspring = self.inversion_mutation(offspring)
+            # Replacement: Create new population from the current population and the offspring
             self.population = self.replace_worst_replacement(self.population, offspring)
-            
+
+            # Update current generation
             current_generation += 1
+            
+            # get best fitness
+            best_fitness = self.get_best_fitness()
+            print(best_fitness)
+
+            # check if there is an improvement in the fitness
+            if best_fitness < previous_fitness:
+                previous_fitness = best_fitness
+                consecutive_no_improvement = 0
+            else:
+                consecutive_no_improvement += 1
 
         # Print the best solution found
         best_solution = self.get_best_solution()
@@ -550,8 +660,6 @@ class GA:
         print(f"Best Solution (Generation {current_generation}):")
         print(f"Route: {best_solution}")
         print(f"Total Distance: {best_fitness}")
-
-    ########################################
 
     #in kwargs we should receive population_size
     def __init__(self, time_deadline, problem_path, **kwargs):
@@ -572,8 +680,8 @@ class GA:
         self.num_vehicles = None
         self.distance_matrix = None
 
-        #self.random_seed = kwargs.get('random_seed', 0)
-        #random.seed(self.random_seed)
+        self.random_seed = kwargs.get('random_seed', 0)
+        random.seed(self.random_seed)
         
         self.mutation_operator = kwargs.get('mutation_operator', 100)
         self.crossover_operator = kwargs.get('crossover_operator', 100)
@@ -585,6 +693,6 @@ class GA:
 
 ########################################
         
-ga_instance = GA(time_deadline=5, problem_path='instances/instance02.txt', population_size=100)
+ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt', population_size=1000)
 ga_instance.run()
 

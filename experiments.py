@@ -57,7 +57,7 @@ def run_single_configuration(configuration, instance):
         ga = GA(TIME_DEADLINE, instance, random_seed = n_run, **configuration)   # genetic algorithm
         start_time = time.time()                            # register starting time
         ga.run()                                            # run the algorithm
-        total_fitness += ga.get_best_fitness()               # get the best fitness from the GA
+        total_fitness += ga.get_best_fitness()              # get the best fitness from the GA
         elapsed_time = time.time() - start_time             # get the elapsed time
         elapsed_times.append(elapsed_time)
 
