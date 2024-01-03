@@ -24,7 +24,7 @@ class GA:
             for i, prob in enumerate(selection_probs):
                 cumulative_prob += prob
                 if rand_val <= cumulative_prob:
-                    selected_parents.append(population[i])
+                    selected_parents.append(self.population[i])
                     break
 
         return selected_parents
@@ -401,7 +401,7 @@ class GA:
         self.problem_path = problem_path
         self.best_solution = None #Atributo para guardar la mejor solución encontrada
         self.time_deadline = time_deadline # Límite de tiempo (en segundos) para el cómputo del algoritmo genético
-        self.population_size = population_size
+        self.population_size = kwargs.get('population_size', 100)
 
     ########################################
 
@@ -411,42 +411,42 @@ class GA:
         
     def generational_replacement(self, parents, offspring):
         """
-            Generational replacement strategy.
+        Generational replacement strategy.
 
-            -In this strategy, the entire population of the current
-            generation is replaced by the new generation of individuals (offspring).
-            """
-            # Combines parents and children to form the new population
-            new_population = parents + offspring
-            return new_population
+        -In this strategy, the entire population of the current
+        generation is replaced by the new generation of individuals (offspring).
+        """
+        # Combines parents and children to form the new population
+        new_population = parents + offspring
+        return new_population
         
 
         
-        # STEADY STATE REPLACEMENT
+    # STEADY STATE REPLACEMENT
 
-        def steady_state_replacement(self, population, offspring):
-            """
-            Steady-state replacement strategy.
+    def steady_state_replacement(self, population, offspring):
+        """
+        Steady-state replacement strategy.
 
-            - in this strategy, only a small subset of the population is replaced at each iteration,
-            keeping most of the individuals from the previous generation.
-            Implementation: In the steady-state strategy, at each iteration,
-            some individuals are replaced by the new individuals, retaining part
-            of the previous population.
-            """
-            # Choose one or more individuals from the current population to
-            # replace with offspring
-            replace_indices = random.sample(range(len(population)), len(offspring))
+        - in this strategy, only a small subset of the population is replaced at each iteration,
+        keeping most of the individuals from the previous generation.
+        Implementation: In the steady-state strategy, at each iteration,
+        some individuals are replaced by the new individuals, retaining part
+        of the previous population.
+        """
+        # Choose one or more individuals from the current population to
+        # replace with offspring
+        replace_indices = random.sample(range(len(population)), len(offspring))
 
-            for idx, offspring_individual in zip(replace_indices, offspring)
-                population[idx] = offspring_individual
+        for idx, offspring_individual in zip(replace_indices, offspring):
+            population[idx] = offspring_individual
 
-            return population
+        return population
 
 
         # REPLAE (WORST)
 
-        def replace_worst_replacement(self, population, offspring):
+    def replace_worst_replacement(self, population, offspring):
         """
         Replace worst (GENITOR) replacement strategy.
 
@@ -466,3 +466,4 @@ class GA:
         new_population = combined_population[:len(population)]
 
         return new_population
+
