@@ -4,7 +4,7 @@ from collections import defaultdict
 class Individual:
     def __init__(self, route):
         self.route = route
-        self.fitness = GA.get_fitness(self.route)  # Initialize fitness score
+        self.fitness = GA.fitness(self.route)  # Initialize fitness score
 
 
 class GA:
@@ -323,7 +323,7 @@ class GA:
             routes.extend(vehicle_locs)
             locations = locations[num_locs_per_vehicle:]
             remaining_locs -= num_locs_per_vehicle
-
+        
         return routes
 
     def initialize_population(self):
@@ -331,36 +331,33 @@ class GA:
         for _ in range(self.population_size):
             individual = self.generate_route()
             population.append(individual)
-            #population.append(Individual(individual))
         
         self.population = population
     
     
-    def get_fitness(self, individual):
+    def fitness(self, route):
         total_distance = 0
-        result = []; chunk = []
-        for item in individual:
-            if isinstance(item, str):
-                if chunk:
-                    chunk.append(1)
-                    result.append(chunk)
-                    chunk = []
-                chunk.append(1)
-            else:
-                chunk.append(item)
-        if chunk:
-            chunk.append(1)
-            result.append(chunk)
-        
-        for vehicle_route in result:
+        locations_per_vehicle = len(route) // self.num_vehicles
+    
+        for i in range(self.num_vehicles):
+            start_idx = i * locations_per_vehicle
+            end_idx = start_idx + locations_per_vehicle if i < self.num_vehicles - 1 else len(route)
+            vehicle_route = route[start_idx:end_idx]
+    
+            # Skip 'D' markers while calculating distances for each vehicle
+            filtered_route = [loc for loc in vehicle_route if isinstance(loc, int)]
+    
             vehicle_distance = 0
-            for j in range(len(vehicle_route) - 1):
-                from_loc = vehicle_route[j]
-                to_loc = vehicle_route[j + 1]
-                vehicle_distance += self.distances[from_loc - 1][to_loc - 1]
+            for j in range(len(filtered_route) - 1):
+                from_loc = filtered_route[j]
+                to_loc = filtered_route[j + 1]
+    
+                # Fetch the distance from the matrix based on 0-indexed locations
+                vehicle_distance += self.distances[from_loc - 1][to_loc - 1]  
+    
             total_distance += vehicle_distance
-            
-        return total_distance
+    
+        return total_distance  # Return total distance as the fitness value
 
 
     ########################################
@@ -460,7 +457,7 @@ class GA:
         combined_population = population + offspring
 
         # Sort the combined population by fitness rating (best to worst) 
-        combined_population.sort(key=lambda x: self.get_fitness(x))
+        combined_population.sort(key=lambda x: self.evaluate_fitness(x))
 
         # Replace the worst individuals with offspring
         new_population = combined_population[:len(population)]
