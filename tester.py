@@ -29,6 +29,11 @@ def run_genetic_algorithm(deadline, instance):
         total_time = deadline
     #TODO: Lo que quieras hacer después de ejecutar el algoritmo genético
     
+
+    
+        
+        
+    
 if __name__ == "__main__":
     run_genetic_algorithm()
     
