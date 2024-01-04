@@ -381,16 +381,16 @@ class GA:
             generation is replaced by the new generation of individuals (offspring).
             """
             # Combines parents and children to form the new population
-            new_population = parents + offspring
+        new_population = parents + offspring
 
-            return new_population
+        return new_population
         
 
         
         # STEADY STATE REPLACEMENT
 
-        def steady_state_replacement(self, population, offspring):
-            """
+    def steady_state_replacement(self, population, offspring):
+        """
             Steady-state replacement strategy.
 
             - in this strategy, only a small subset of the population is replaced at each iteration,
@@ -398,20 +398,20 @@ class GA:
             Implementation: In the steady-state strategy, at each iteration,
             some individuals are replaced by the new individuals, retaining part
             of the previous population.
-            """
+        """
             # Choose one or more individuals from the current population to
             # replace with offspring
-            replace_indices = random.sample(range(len(population)), len(offspring))
+        replace_indices = random.sample(range(len(population)), len(offspring))
 
-            for idx, offspring_individual in zip(replace_indices, offspring)
-                population[idx] = offspring_individual
+        for idx, offspring_individual in zip(replace_indices, offspring)
+            population[idx] = offspring_individual
 
-            return population
+        return population
 
 
         # REPLAE (WORST)
 
-        def replace_worst_replacement(self, population, offspring):
+    def replace_worst_replacement(self, population, offspring):
         """
         Replace worst (GENITOR) replacement strategy.
 
