@@ -379,10 +379,9 @@ class GA:
 
             -In this strategy, the entire population of the current
             generation is replaced by the new generation of individuals (offspring).
-            """
+        """
             # Combines parents and children to form the new population
         new_population = parents + offspring
-
         return new_population
         
 
@@ -403,7 +402,7 @@ class GA:
             # replace with offspring
         replace_indices = random.sample(range(len(population)), len(offspring))
 
-        for idx, offspring_individual in zip(replace_indices, offspring)
+        for idx, offspring_individual in zip(replace_indices, offspring):
             population[idx] = offspring_individual
 
         return population
