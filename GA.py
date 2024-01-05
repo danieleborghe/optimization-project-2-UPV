@@ -1,5 +1,4 @@
 import random
-from collections import defaultdict
 import time
 class GA:
 
@@ -23,12 +22,12 @@ class GA:
 
         return selected_parents
 
-    def linear_ranking_selection(self, s=1.5):
-        sorted_population = sorted(self.population, key=lambda x: self.fitness(x), reverse=True)
+    def linear_ranking_selection(self):
+        sorted_population = sorted(self.population, key=self.fitness, reverse=True)
         selection_probs = []
 
         for i, _ in enumerate(sorted_population):
-            prob = (2 - s) / self.population_size + (2 * i * (s - 1)) / (self.population_size * (self.population_size - 1))
+            prob = (2 - self.linear_ranking_s) / self.population_size + (2 * i * (self.linear_ranking_s - 1)) / (self.population_size * (self.population_size - 1))
             selection_probs.append(prob)
 
         selected_parents = []
@@ -43,12 +42,12 @@ class GA:
 
         return selected_parents
    
-    def exponential_ranking_selection(self, c=0.6):
-        sorted_population = sorted(self.population, key=lambda x: self.fitness(x), reverse=True)
+    def exponential_ranking_selection(self):
+        sorted_population = sorted(self.population, key=self.fitness, reverse=True)
         selection_probs = []
 
         for i in range(self.population_size):
-            prob = max(0, (c - 1) / ((c ** self.population_size) - 1) * (c ** (self.population_size - i - 1)))
+            prob = max(0, (self.exponential_ranking_c - 1) / ((self.exponential_ranking_c ** self.population_size) - 1) * (self.exponential_ranking_c ** (self.population_size - i - 1)))
             selection_probs.append(prob)
 
         selected_parents = []
@@ -63,12 +62,17 @@ class GA:
 
         return selected_parents
 
-    def tournament_selection(self, k=2, p=0.9):
+    def tournament_selection(self):
+        k_percentage = self.tournament_size
+        p = self.tournament_probability
+
         selected_parents = []
         for _ in range(self.population_size):
+            k = int(k_percentage * len(self.population))
+
             tournament = random.sample(self.population, k)  # Select k individuals randomly
             if random.random() < p:
-                best_individual = max(tournament, key=lambda x: self.fitness(x))  # Select the best individual
+                best_individual = max(tournament, key=self.fitness)  # Select the best individual
                 selected_parents.append(best_individual)
             else:
                 selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
@@ -91,31 +95,79 @@ class GA:
 
         for i in range(0, len(parents), 2):
             parent1_orig, parent2_orig = parents[i].copy(), parents[i + 1].copy()
-
             if random.random() < self.cross_rate:
-
-                parent1 = [value for value in parent1_orig if not isinstance(value, str)]
-                parent2 = [value for value in parent2_orig if not isinstance(value, str)]
-
-                # Step 1: Select random position
+                
+                parent1, parent2 = [value for value in parent1_orig if not isinstance(value, str)], [value for value in parent2_orig if not isinstance(value, str)]
                 position = random.randint(1, len(parent1) - 2)
 
                 if len(parent1) != len(parent2):
                     raise ValueError("Parents must have the same length")
 
-                # Initialize children as copies of parents
                 child1 = parent1[:position].copy()
                 child2 = parent2[:position].copy()
 
-                # Step 3: Fill remaining values in child1 from parent2
                 for value in parent2:
                     if value not in child1:
                         child1.append(value)
 
-                # Step 4: Fill remaining values in child2 from parent1
                 for value in parent1:
                     if value not in child2:
                         child2.append(value)
+
+                child1_new = []
+                index = 0
+                for el in parent1_orig:
+                    if isinstance(el, int):
+                        child1_new.append(child1[index])
+                        index += 1
+                    else:
+                        child1_new.append(el)
+
+                child2_new = []
+                index = 0
+                for el in parent2_orig:
+                    if isinstance(el, int):
+                        child2_new.append(child2[index])
+                        index += 1
+                    else:
+                        child2_new.append(el)
+
+                offspring.extend([child1_new, child2_new])
+            else:
+                offspring.extend([parent1_orig, parent2_orig])
+
+        return offspring
+    
+    # PARTIALLY MAPPED CROSSOVER (PMX)
+    def partially_mapped_crossover(self, parents):
+        if len(parents) % 2 != 0:
+            raise ValueError("Number of parents must be even for cut-and-crossfill crossover.")
+
+        offspring = []
+
+        for i in range(0, len(parents), 2):
+            parent1_orig, parent2_orig = parents[i].copy(), parents[i + 1].copy()
+            if random.random() < self.cross_rate:
+                
+                parent1, parent2 = [v for v in parent1_orig if not isinstance(v, str)], [v for v in parent2_orig if not isinstance(v, str)]
+                size = len(parent1)
+                cut1, cut2 = sorted([random.randint(0, size), random.randint(0, size)])
+
+                child1, child2 = parent1[cut1:cut2], parent2[cut1:cut2]
+
+                for i in range(size):
+                    if cut1 <= i < cut2:
+                        continue
+                    gene1, gene2 = parent1[i], parent2[i]
+
+                    while gene1 in child2:
+                        gene1 = parent1[parent2.index(gene1)]
+
+                    while gene2 in child1:
+                        gene2 = parent2[parent1.index(gene2)]
+
+                    child1.append(gene2)
+                    child2.append(gene1)
 
                 child1_new = []
                 index = 0
@@ -135,145 +187,98 @@ class GA:
                     else:
                         child2_new.append(el)
 
-
-                assert len(parent1_orig) == len(child1_new)
-                assert len(parent2_orig) == len(child2_new)
-
-                assert all(element in parent1_orig for element in child1_new)
-                assert all(element in parent2_orig for element in child2_new)
-
-                #print("cd1", child1)
-                #print("cd2", child2)
-
-                #print("cd1", child1_new)
-                #print("cd2", child2_new)
-
                 offspring.extend([child1_new, child2_new])
             else:
                 offspring.extend([parent1_orig, parent2_orig])
 
         return offspring
-
-    # PARTIALLY MAPPED CROSSOVER (PMX)
-    def partially_mapped_crossover(self, selected_parents):
-        offspring = []
-
-        for parent1, parent2 in zip(selected_parents[::2], selected_parents[1::2]):
-            # Step 1: Select two random positions i, j ∈ {1, …, n-1}
-            i, j = sorted(random.sample(range(1, len(parent1)), 2))
-
-            # Step 2: Child1[i+1:j] <- Parent1[i+1:j]
-            child1 = [parent1[0]] + parent1[1:i + 1] + parent2[i + 1:j] + parent1[j:]
-
-            # Step 3: For each element e2 in the segment of the second parent
-            for idx in range(i + 1, j):
-                e2 = parent2[idx]
-
-                # Step 3.1: If e2 not in first child
-                if e2 not in child1:
-                    e1_idx = parent1.index(e2)
-
-                    # Step 3.1.1: Get element e1 that occupies its position in the first child
-                    e1 = child1[e1_idx]
-
-                    # Step 3.1.2: Try to add e2 in the position occupied by e1 in the second child
-                    while e1 in parent2[i + 1:j]:
-                        e1_idx = parent1.index(e1)
-                        e1 = child1[e1_idx]
-
-                    child1[e1_idx] = e2
-
-                else:
-                    # Step 3.1.3: Otherwise, if element e3 occupies the position in the child
-                    e3_idx = parent2.index(e2)
-
-                    # Step 3.1.3.1: Put e2 in the position that e3 has in the second parent
-                    child1[e3_idx] = e2
-
-            # Step 4: The rest of the positions can be filled from the second parent
-            for idx in range(len(child1)):
-                if idx < i or idx >= j:
-                    if parent2[idx] not in child1:
-                        child1[idx] = parent2[idx]
-
-            # Repeat the process for the second child
-            child2 = [parent2[0]] + parent2[1:i + 1] + parent1[i + 1:j] + parent2[j:]
-
-            for idx in range(i + 1, j):
-                e2 = parent1[idx]
-                if e2 not in child2:
-                    e3_idx = parent2.index(e2)
-                    e3 = child2[e3_idx]
-                    while e3 in parent1[i + 1:j]:
-                        e3_idx = parent2.index(e3)
-                        e3 = child2[e3_idx]
-                    child2[e3_idx] = e2
-                else:
-                    e1_idx = parent1.index(e2)
-                    child2[e1_idx] = e2
-
-            for idx in range(len(child2)):
-                if idx < i or idx >= j:
-                    if parent1[idx] not in child2:
-                        child2[idx] = parent1[idx]
-
-            offspring.extend([child1, child2])
-
-        return offspring 
     
     # EDGE CROSSOVER
-    def edge_crossover(self, selected_parents):
+    def edge_crossover(self, parents):
+        """
+        Perform Edge Crossover on two parents.
+
+        Parameters:
+        - parent1: List representing the first parent
+        - parent2: List representing the second parent
+
+        Returns:
+        - child: List representing the child after crossover
+        """
+        if len(parents) % 2 != 0:
+            raise ValueError("Number of parents must be even for cut-and-crossfill crossover.")
+
         offspring = []
 
-        for parent1, parent2 in zip(selected_parents[::2], selected_parents[1::2]):
-            # Step 1: For each value, build a table of adjacent values from both parents
-            adjacency_table = defaultdict(set)
+        for i in range(0, len(parents), 2):
+            parent1_orig, parent2_orig = parents[i].copy(), parents[i + 1].copy()
 
-            for p1, p2 in zip(parent1, parent2):
-                adjacency_table[p1].add(p2)
-                adjacency_table[p2].add(p1)
+            if random.random() < self.cross_rate:
 
-            # Step 2: Child <- parent1[0]
-            child1 = [parent1[0]]
-            child2 = [parent2[0]]
+                parent1 = [value for value in parent1_orig if not isinstance(value, str)]
+                parent2 = [value for value in parent2_orig if not isinstance(value, str)]
 
-            # Step 3: X <- Initial element from one of the two parents (random)
-            remaining_values = set(parent1[1:])
-            X = random.choice(list(remaining_values))
+                # Step 1: Construct a table of values adjacent to each value of both parents
+                adjacent_table = {}
+                for parent in [parent1, parent2]:
+                    for i in range(len(parent)):
+                        value = parent[i]
+                        if value not in adjacent_table:
+                            adjacent_table[value] = set()
 
-            # Step 4: While |Child1| != n
-            while len(child1) < len(parent1):
-                # Step 4.1: Child1 <- Child1 ∪ X
-                child1.append(X)
-                child2.append(X)
+                        if i == 0:
+                            adjacent_table[value].add(parent[i + 1])
+                            adjacent_table[value].add(parent[-1])
+                        elif i == len(parent) - 1:
+                            adjacent_table[value].add(parent[i - 1])
+                            adjacent_table[value].add(parent[0])
+                        else:
+                            adjacent_table[value].add(parent[i - 1])
+                            adjacent_table[value].add(parent[i + 1])
 
-                # Step 4.2: Remove all references to X in the adjacency table
-                del adjacency_table[X]
+                # Step 2: Child initialization
+                child = set()
 
-                common_adjacent_values = set()
+                # Step 3: X <- Initial element from one of the two parents
+                X = random.choice(parent1)
 
-                # Step 4.3: If X has a common adjacent value in both parents
-                if X in parent1 and X in parent2:
-                    common_adjacent_values = adjacency_table[parent1[parent1.index(X)]].intersection(adjacency_table[parent2[parent2.index(X)]])
+                # Step 4: Main loop
+                while len(child) != len(parent1):
+                    # Step 4.1: Child <- Child ∪ X
+                    child.add(X)
 
-                # Step 4.3.1: X <- Common adjacent value in both parents
-                if common_adjacent_values:
-                    X = min(common_adjacent_values, key=lambda val: len(adjacency_table[val]))
+                    # Step 4.2: Remove references to X in adjacent lists
+                    for adjacent_list in adjacent_table.values():
+                        adjacent_list.discard(X)
 
-                # Step 4.4: Otherwise, if X has a non-empty adjacent list
-                elif adjacency_table[X]:
-                    # Step 4.4.1: X <- Element from the adjacent list with the shortest adjacent list
-                    X = min(adjacency_table[X], key=lambda val: len(adjacency_table[val]))
+                    # Step 4.3: Check for common two equal adjacent values
+                    common_adjacent_values = set.intersection(*[adjacent_table[val] for val in parent1])
 
-                # Step 4.5: Otherwise, if the adjacent list is empty
-                else:
-                    # Step 4.5.1: X <- Random value not in child1
-                    remaining_values = set(parent1) - set(child1)
-                    if remaining_values:
-                        X = random.choice(list(remaining_values))
+                    if common_adjacent_values:
+                        X = common_adjacent_values.pop()
+                    # Step 4.4: Choose element from adjacent list with the shortest adjacent list
+                    elif X in adjacent_table and adjacent_table[X]:
+                        X = min(adjacent_table[X], key=lambda val: len(adjacent_table[val]))
+                    # Step 4.5: Choose random value not in child
+                    else:  
+                        remaining_values = set(parent1) - child
+                        X = random.choice(list(remaining_values)) if remaining_values else None
 
-            offspring.extend([child1, child2])
+                child = list(child)
 
+                child_new = []
+                index = 0
+                for el in parent1_orig:
+                    if isinstance(el, int):
+                        child_new.append(child[index])
+                        index += 1
+                    else:
+                        child_new.append(el)
+
+                offspring.extend([child_new])
+            else:
+                offspring.extend([parent1_orig, parent2_orig])
+            
         return offspring
 
     ########################################
@@ -310,8 +315,6 @@ class GA:
                 else:
                     child_new.append(el)
             
-            assert len(parent_orig) == len(child_new)
-            assert all(element in parent_orig for element in child_new)
 
             return child_new
         else:
@@ -345,8 +348,6 @@ class GA:
                 else:
                     child_new.append(el)
             
-            assert len(parent_orig) == len(child_new)
-            assert all(element in parent_orig for element in child_new)
 
             return child
         else:
@@ -381,8 +382,6 @@ class GA:
                 else:
                     child_new.append(el)
             
-            assert len(parent_orig) == len(child_new)
-            assert all(element in parent_orig for element in child_new)
 
             return child
         else:
@@ -415,8 +414,6 @@ class GA:
                 else:
                     child_new.append(el)
             
-            assert len(parent_orig) == len(child_new)
-            assert all(element in parent_orig for element in child_new)
 
             return child
         else:
@@ -427,7 +424,7 @@ class GA:
     ########################################
 
     #GENERATIONAL REPLACEMENT    
-    def generational_replacement(self, parents, offspring):
+    def generational_replacement(self, population, offspring):
         """
         Generational replacement strategy.
 
@@ -435,7 +432,15 @@ class GA:
         generation is replaced by the new generation of individuals (offspring).
         """
         # Combines parents and children to form the new population
-        new_population = parents + offspring
+        if len(offspring) > len(population):
+            new_population = sorted(offspring, key=self.fitness)[:len(population)]
+        elif len(offspring) < len(population):
+            sorted_population = sorted(population, key=self.fitness)
+            new_population = offspring.copy() + sorted_population
+            new_population = new_population[:len(population)]
+        else:
+            new_population = offspring.copy()
+
         return new_population
        
     # STEADY STATE REPLACEMENT
@@ -469,40 +474,54 @@ class GA:
         At each iteration, the least fit individuals are replaced by
         the newly generated individuals.
         """
-        #Combines parents and children to form the new population
-        combined_population = population + offspring
-
-        # Sort the combined population by fitness rating (best to worst) 
-        combined_population.sort(key=lambda x: self.fitness(x))
+        new_population = population.copy()
 
         # Replace the worst individuals with offspring
-        new_population = combined_population[:len(population)]
+        if len(offspring) <= len(new_population):
+            new_population.sort(key=self.fitness, reverse=True)
+            new_population[:len(offspring)] = offspring.copy()
+        else:
+            new_population = offspring.copy()
+            new_population = sorted(new_population, key=self.fitness)[:len(population)]
 
         return new_population
    
     # ELITISM REPLACEMENT 
-    def elitism_replacement(self, parents, offspring, elite_percentage=0.1):
-        num_elites = int(elite_percentage * len(parents))
-        elites = sorted(parents, key=self.fitness)[:num_elites]
-        new_population = elites + offspring
+    def elitism_replacement(self, population, offspring):
+        num_elites = int(self.elite_percentage * len(population))
+        elites = sorted(population, key=self.fitness)[:num_elites]
+        offspring_sorted = sorted(offspring, key=self.fitness)
+        new_population = elites + offspring_sorted
 
-        return new_population
+        return new_population[:len(population)]
     
     # ROUND-ROBIN REPLACEMENT
-    def round_robin_replacement(self, parents, offspring):
-        new_population = parents.copy()
-      
-        for i in range(0, len(parents), len(offspring)):
-          new_population[i:i+len(offspring)] = offspring
-
-        return new_population
+    def round_robin_replacement(self, population, offspring):
+        matches_percentage = self.round_robin_matches
+        # Combine the current population and offspring
+        combined_population = population + offspring
+        
+        matches = int(matches_percentage * len(combined_population))
+        # Sample all tournament individuals at once
+        tournament_samples = [random.sample(combined_population, matches) for _ in range(len(combined_population))]
+        
+        # Perform tournament selection
+        selected_population = []
+        
+        for tournament_sample in tournament_samples:
+            # Find the individual with the maximum victories in the tournament
+            winner = max(combined_population, key=lambda x: sum(self.fitness(x) < self.fitness(opponent) for opponent in tournament_sample))
+            
+            # Add the winner to the selected population
+            selected_population.append(winner)
+        
+        return selected_population
     
     # 𝝀-𝝁 REPLACEMENT
-    def lambda_mu_replacement(self, parents, offspring, mu=5):
-        combined_population = parents + offspring
+    def lambda_mu_replacement(self, population, offspring):
+        combined_population = population.copy() + offspring.copy()
         combined_population.sort(key=self.fitness)
-        new_population = combined_population[:mu]
-
+        new_population = combined_population[:len(population)]
         return new_population
 
     ########################################
@@ -566,7 +585,7 @@ class GA:
     def initialize_population(self):
         population = [self.generate_route() for _ in range(self.population_size)]
         # Assert that all members in the population have the same length
-        assert all(len(route) == len(population[0]) for route in population), "All routes must have the same length"
+        #assert all(len(route) == len(population[0]) for route in population), "All routes must have the same length"
         self.population = population
         self.best_solution = self.get_best_solution()
 
@@ -589,6 +608,33 @@ class GA:
     
         return total_distance  # Return total distance as the fitness value
 
+    ########################################
+
+    def fitness_old(self, route):
+        total_distance = 0
+        result = []; chunk = []
+        for item in route:
+            if isinstance(item, str):
+                if chunk:
+                    chunk.append(0)
+                    result.append(chunk)
+                    chunk = []
+                chunk.append(0)
+            else:
+                chunk.append(item)
+        if chunk:
+            chunk.append(0)
+            result.append(chunk)
+        
+        for vehicle_route in result:
+            vehicle_distance = 0
+            for j in range(len(vehicle_route) - 1):
+                from_loc = vehicle_route[j]
+                to_loc = vehicle_route[j + 1]
+                vehicle_distance += self.distance_matrix[from_loc - 1][to_loc - 1]
+            total_distance += vehicle_distance
+        return total_distance
+    
     ########################################
 
     def get_best_solution(self):
@@ -700,7 +746,7 @@ class GA:
         self.CROSSOVER_OPERATORS = {
             'cut_and_crossfill': self.cut_and_crossfill_crossover,
             "pmx": self.partially_mapped_crossover,
-            "edge_crossover": self.edge_crossover,
+            "edge": self.edge_crossover,
         }
 
         self.SELECTION_METHODS = {
@@ -717,7 +763,7 @@ class GA:
             'replace_worst_genitor': self.replace_worst_replacement,
             'elitism': self.elitism_replacement,
             'round_robin': self.round_robin_replacement,
-            'lambda_mu_replacement': self.lambda_mu_replacement,
+            'lambda_mu': self.lambda_mu_replacement,
         }
 
         self.problem_path = problem_path
@@ -729,21 +775,28 @@ class GA:
         self.num_vehicles = None
         self.distance_matrix = None
 
-        self.random_seed = kwargs.get('random_seed', 2)
+        self.random_seed = kwargs.get('random_seed', 0)
         random.seed(self.random_seed)
         
         self.mutation_operator = kwargs.get('mutation_operator', "swap")
-        self.crossover_operator = kwargs.get('crossover_operator', "cut_and_crossfill")
-        self.selection_method = kwargs.get('selection_method', "roulette_wheel")
-        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "replace_worst_genitor")
+        self.crossover_operator = kwargs.get('crossover_operator', "edge")
+        self.selection_method = kwargs.get('selection_method', "linear_ranking")
+        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "generational")
 
         self.population_size = kwargs.get('population_size', 100)
-        self.cross_rate = kwargs.get('cross_rate', 0.75)
+        self.cross_rate = kwargs.get('cross_rate', 0.80)
         self.mut_rate = kwargs.get('mut_rate', 0.30)
         self.early_stopping_limit = kwargs.get("early_stopping_limit", 50)
 
+        self.elite_percentage = kwargs.get("elite_percentage", 0.2)
+        self.round_robin_matches = kwargs.get("elite_percentage", 0.3)
+        self.exponential_ranking_c = kwargs.get("exponential_ranking_c", 0.5)
+        self.linear_ranking_s = kwargs.get("linear_ranking_s", 1.5)
+        self.tournament_size = kwargs.get("tournament_size", 0.3)
+        self.tournament_probability = kwargs.get("tournament_probability", 0.5)
+
     ########################################
         
-#ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
-#ga_instance.run()
+ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
+ga_instance.run()
 

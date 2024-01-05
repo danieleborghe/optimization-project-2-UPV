@@ -18,35 +18,35 @@ MUTATION_OPERATORS = (
 )
 CROSSOVER_OPERATORS = (
     'cut_and_crossfill', 
-    #'pmx', 
-    #'edge_crossover'
+    'pmx', 
+    'edge'
 )
 SELECTION_METHODS = (
     'roulette_wheel', 
-    #'linear_ranking', 
-    #'exponential_ranking', 
+    'linear_ranking', 
+    'exponential_ranking', 
     'tournament', 
     'uniform'
 )
 POPULATION_REPLACEMENT_STRATEGIES = (
     'generational', 
-    'steady_state', 
     'replace_worst_genitor', 
     'elitism', 
     'round_robin', 
-    'lambda_mu_replacement'
+    'lambda_mu'
 )
 
-# define the hyperparameters to test 
-# to be changed based on the result of the operators grid-search)
-POPULATION_SIZES = (50, 100, 200)
-CROSSOVER_RATES = (0.8, 0.9, 1.0)
-MUTATION_RATES = (0.1, 0.2, 0.3)
-TOURNAMENT_SIZE = (2, 4, 8)
-LINEAR_RANKING_ALPHA = (1.5, 2.0, 2.5)
-EXPONENTIAL_RANKING_ALPHA = (1.5, 2.0, 2.5)
-LAMBDA_VALUE = (5, 10, 20)
-MU_VALUE = (2, 5, 10)
+POPULATION_SIZES = (25, 50, 100, 200, 400)
+CROSSOVER_RATES = (0.60, 0.70, 0.80, 0.90, 1.00)
+MUTATION_RATES = (0.10, 0.20, 0.30, 0.40, 0.50)
+EARLY_STOPPING_LIMIT = (25, 50, 100)
+
+ROUND_ROBIN_MATCHES = (0.1, 0.2, 0.3, 0.4, 0.5)
+ELITE_PERCENTAGE = (0.1, 0.2, 0.3, 0.4, 0.5)
+TOURNAMENT_SIZE = (0.1, 0.2, 0.3, 0.4, 0.5)
+TORUNAMENT_PROBABILITY = (0.1, 0.3, 0.5, 0.7, 0.9)
+EXPONENTIAL_RANKING_C = (0.1, 0.3, 0.5, 0.7, 0.9)
+LINEAR_RANKING_S = (1.1, 1.3, 1.5, 1.7, 1.9)
 
 # define a function for run a configuration of the genetic algorithm
 def run_single_configuration(configuration, instance):
@@ -72,7 +72,7 @@ def grid_search_operators_new(instances):
     total_configs = len(MUTATION_OPERATORS) * len(CROSSOVER_OPERATORS) * len(SELECTION_METHODS) * len(POPULATION_REPLACEMENT_STRATEGIES)
     # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
     current_config = 0
-    total_elapsed_time = 0
+    total_elapsed_time = 4320
 
     # initialize a list to store results for each combination of instances and configurations
     all_results = []
@@ -128,7 +128,7 @@ def grid_search_operators_new(instances):
                     progress_percentage = (current_config / total_configs) * 100
                     total_elapsed_time += total_config_elapsed_time
                     #print(total_elapsed_time)
-                    average_elapsed_time = total_elapsed_time / current_config
+                    average_elapsed_time = total_elapsed_time / (current_config + 1)
                     #print(total_elapsed_time)
 
                     # Display configuration being tested
@@ -166,108 +166,7 @@ def grid_search_operators_new(instances):
 
     # save results to CSV
     save_results_to_csv(all_results, "results_operators.csv")
-
-# define a grid-search function to test the operators
-def grid_search_operators(instances):
-    # initialize an empty array for store the results
-    results = []        
-    # calculate the total configurations to test (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
-    total_configs = len(MUTATION_OPERATORS) * len(CROSSOVER_OPERATORS) * len(SELECTION_METHODS) * len(POPULATION_REPLACEMENT_STRATEGIES)
-    # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
-    current_config = 0
-    total_elapsed_time = 0
-
-    # iterate all the possibile combinations of configurations
-    for mutation_operator in MUTATION_OPERATORS:
-        for crossover_operator in CROSSOVER_OPERATORS:
-            for selection_method in SELECTION_METHODS:
-                for population_replacement_strategy in POPULATION_REPLACEMENT_STRATEGIES:
-                    result_entry = {}
-                    # set the configuration
-                    configuration = {
-                        'mutation_operator': mutation_operator,
-                        'crossover_operator': crossover_operator,
-                        'selection_method': selection_method,
-                        'population_replacement_strategy': population_replacement_strategy
-                    }
-
-                    ranks_across_instances = []
-                    total_fitness_across_instances = 0      # initialize the total fitness counter as 0
-                    total_config_elapsed_time = 0            # initialize the total elapsed time counter as 0
-                    average_config_elapsed_time = 0
-
-                    # test all the instances
-                    for instance in instances:
-                        # test the current configuration
-                        average_fitness, average_run_elapsed_time, elapsed_time = run_single_configuration(  
-                            configuration, 
-                            instances[instance]
-                        )
-
-                        result_entry['fitness_' + str(instance)] = average_fitness
-                        result_entry['time_' + str(instance)] = average_run_elapsed_time
-
-                        rank = (average_fitness, average_run_elapsed_time)
-                        ranks_across_instances.append(rank)
-
-                        total_fitness_across_instances += average_fitness   # add the obtained fitness to the total fitness
-                        total_config_elapsed_time += elapsed_time                  # add the elapsed time to the counter (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
-
-                    # Sort by fitness and time in case of ties
-                    sorted_ranks = sorted(ranks_across_instances, key=lambda x: (x[0], x[1]))
-                    print(sorted_ranks)
-
-                    # Assign ranks
-                    ranks_assigned = [(rank[0], rank[1], i + 1) for i, rank in enumerate(sorted_ranks)]
-                    print(ranks_assigned)
-
-                    # Calculate average rank
-                    average_rank = sum(rank[2] for rank in ranks_assigned) / len(ranks_assigned)
-                    print(average_rank)
-
-                    average_fitness_across_instances = total_fitness_across_instances / len(instances)  # calculate the average fitness
-                    average_config_elapsed_time = total_config_elapsed_time / len(instances)                          # calculate the average elapsed time
-
-                    result_entry = configuration.copy()                                     # copy the configuration just tested
-                    result_entry['average_rank'] = average_rank                                       
-                    result_entry['average_fitness'] = average_fitness_across_instances      # store the average fitness obtained
-                    result_entry['average_elapsed_time'] = average_config_elapsed_time             # store the average elapsed time 
-                    results.append(result_entry)                                            # store all the data about the test
-                    
-                    # JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH
-
-                    # 1. update the progress
-                    current_config += 1 
-                    progress_percentage = (current_config / total_configs) * 100
-                    total_elapsed_time += total_config_elapsed_time
-                    #print(total_elapsed_time)
-                    average_elapsed_time = total_elapsed_time / current_config
-                    #print(total_elapsed_time)
-
-                    # Display configuration being tested
-                    current_configuration = f"Config {current_config}/{total_configs} - " \
-                                            f"Mutation: {mutation_operator}, " \
-                                            f"Crossover: {crossover_operator}, " \
-                                            f"Selection: {selection_method}, " \
-                                            f"Replacement: {population_replacement_strategy}"
-
-                    print(f"Progress: {progress_percentage:.2f}% - {current_configuration}")
-
-                    # 2. estimate time left
-                    remaining_configs = total_configs - current_config
-                    estimated_seconds_left = remaining_configs * average_elapsed_time
-                    #print("estimated_seconds_left", estimated_seconds_left)
-                    estimated_hours_left, remainder = divmod(estimated_seconds_left, 3600)
-                    estimated_minutes_left, estimated_seconds_left = divmod(remainder, 60)
-                    print(f"Estimated time left: {int(estimated_hours_left)}h {int(estimated_minutes_left)}m {int(estimated_seconds_left)}s")
-
-    # get the best configuration operators obtained so-far
-    best_configuration_operators = min(results, key=lambda x: x['average_rank'])
-    print(f"Best Configuration (Operators): {best_configuration_operators}, Average Rank: {best_configuration_operators['average_rank']}, Average Fitness: {best_configuration_operators['average_fitness']}")
-
-    # save results to CSV
-    save_results_to_csv(results, "results_operators.csv")
-
+    
 # define a grid-search function to test different combinations of hyperparameters
 def grid_search_hyperparameters(instances):
     # create an empty list to store the results
@@ -275,7 +174,7 @@ def grid_search_hyperparameters(instances):
 
     instance_ranks = {instance: [] for instance in instances}
     # calculate the total configurations to test (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
-    total_configs = len(POPULATION_SIZES) * len(CROSSOVER_RATES) * len(MUTATION_RATES) * len(TOURNAMENT_SIZE) * len(LINEAR_RANKING_ALPHA) * len(EXPONENTIAL_RANKING_ALPHA) * len(LAMBDA_VALUE) * len(MU_VALUE)
+    total_configs = len(POPULATION_SIZES) * len(CROSSOVER_RATES) * len(MUTATION_RATES) * len(TOURNAMENT_SIZE) * len(LINEAR_RANKING_S) * len(EXPONENTIAL_RANKING_C)
     # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
     current_config = 0
 
