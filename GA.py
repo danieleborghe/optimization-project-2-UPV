@@ -797,6 +797,6 @@ class GA:
 
     ########################################
         
-ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
-ga_instance.run()
+#ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
+#ga_instance.run()
 
