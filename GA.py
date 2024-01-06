@@ -103,7 +103,7 @@ class GA:
         # Ensure the number of selected parents is even
         if len(selected_parents) % 2 != 0:
             selected_parents.pop()
-            
+
         return selected_parents
 
     ########################################
@@ -298,7 +298,7 @@ class GA:
                         index += 1
                     else:
                         child_new.append(el)
-
+                #print(len(child_new))
                 offspring.extend([child_new])
             else:
                 offspring.extend([parent1_orig, parent2_orig])
@@ -311,137 +311,123 @@ class GA:
 
     # SWAP MUTATION
     def swap_mutation(self, parent):
-        if random.random() < self.mut_rate:
-            parent_orig = parent.copy()
-            parent = [value for value in parent_orig if not isinstance(value, str)]
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
 
-            # Step 1: Copy parent into child
-            child = parent.copy()
-            #print("child", child)
+        # Step 1: Copy parent into child
+        child = parent.copy()
+        #print("child", child)
+        #print(len(child) - 1)
+        # Step 2: Randomly select position i ∈ {1, …, n}
+        i = random.randint(1, len(child) - 1)
 
-            # Step 2: Randomly select position i ∈ {1, …, n}
-            i = random.randint(1, len(child) - 1)
+        # Step 3: Randomly select position j ∈ {1, …, i − 1, i + 1, …, n}
+        j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
+        j = random.choice(j_candidates)
 
-            # Step 3: Randomly select position j ∈ {1, …, i − 1, i + 1, …, n}
-            j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
-            j = random.choice(j_candidates)
+        # Step 4: Exchange content between positions i and j
+        child[i], child[j] = child[j], child[i]
 
-            # Step 4: Exchange content between positions i and j
-            child[i], child[j] = child[j], child[i]
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
 
-
-            child_new = []
-            index = 0
-            for el in parent_orig:
-                if isinstance(el, int):
-                    child_new.append(child[index])
-                    index += 1
-                else:
-                    child_new.append(el)
-            
-
-            return child_new
-        else:
-            return parent
+        return child_new
 
     # INSERTION MUTATION
     def insertion_mutation(self, parent):
-        if random.random() < self.mut_rate:
-            parent_orig = parent.copy()
-            parent = [value for value in parent_orig if not isinstance(value, str)]
-            # Step 1: Copy parent into child
-            child = parent.copy()
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
+        # Step 1: Copy parent into child
+        child = parent.copy()
 
-            # Step 2: Select random position i ∈ {1, …, n}
-            i = random.randint(1, len(child) - 1)
+        # Step 2: Select random position i ∈ {1, …, n}
+        i = random.randint(1, len(child) - 1)
 
-            # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
-            j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
-            j = random.choice(j_candidates)
+        # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
+        j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
+        j = random.choice(j_candidates)
 
-            # Step 4: Shift the content of j into i+1, moving to the right every value between i and j
-            moved_element = child.pop(j)
-            child.insert(i + 1, moved_element)
+        # Step 4: Shift the content of j into i+1, moving to the right every value between i and j
+        moved_element = child.pop(j)
+        child.insert(i + 1, moved_element)
 
-            child_new = []
-            index = 0
-            for el in parent_orig:
-                if isinstance(el, int):
-                    child_new.append(child[index])
-                    index += 1
-                else:
-                    child_new.append(el)
-            
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
 
-            return child
-        else:
-            return parent
+        return child_new
     
     # SCRAMBLE MUTATION
     def scramble_mutation(self, parent):
-        if random.random() < self.mut_rate:
-            parent_orig = parent.copy()
-            parent = [value for value in parent_orig if not isinstance(value, str)]
-            # Step 1: Copy parent into child
-            child = parent.copy()
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
+        # Step 1: Copy parent into child
+        child = parent.copy()
 
-            # Step 2: Select random position i ∈ {1, …, n}
-            i = random.randint(1, len(child) - 1)
+        # Step 2: Select random position i ∈ {1, …, n}
+        i = random.randint(1, len(child) - 1)
 
-            # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
-            j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
-            j = random.choice(j_candidates)
+        # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
+        j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
+        j = random.choice(j_candidates)
 
-            # Step 4: Shuffle content between positions i and j
-            subsequence = child[i:j + 1]
-            random.shuffle(subsequence)
-            child[i:j + 1] = subsequence
+        # Step 4: Shuffle content between positions i and j
+        subsequence = child[i:j + 1]
+        random.shuffle(subsequence)
+        child[i:j + 1] = subsequence
 
-            child_new = []
-            index = 0
-            for el in parent_orig:
-                if isinstance(el, int):
-                    child_new.append(child[index])
-                    index += 1
-                else:
-                    child_new.append(el)
-            
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
 
-            return child
-        else:
-            return parent
+        return child_new
     
     # INVERSION MUTATION
     def inversion_mutation(self, parent):
-        if random.random() < self.mut_rate:
-            parent_orig = parent.copy()
-            parent = [value for value in parent_orig if not isinstance(value, str)]
-            # Step 1: Copy parent into child
-            child = parent.copy()
+        parent_orig = parent.copy()
+        parent = [value for value in parent_orig if not isinstance(value, str)]
+        # Step 1: Copy parent into child
+        child = parent.copy()
 
-            # Step 2: Select random position i ∈ {1, …, n}
-            i = random.randint(1, len(child) - 1)
+        # Step 2: Select random position i ∈ {1, …, n}
+        i = random.randint(1, len(child) - 1)
 
-            # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
-            j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
-            j = random.choice(j_candidates)
+        # Step 3: Select random position j ∈ {1, …, i − 1, i + 1, …, n}
+        j_candidates = list(range(1, i)) + list(range(i + 1, len(child) - 1))
+        j = random.choice(j_candidates)
 
-            # Step 4: Invert order between positions i and j
-            child[i:j + 1] = reversed(child[i:j + 1])
+        # Step 4: Invert order between positions i and j
+        child[i:j + 1] = reversed(child[i:j + 1])
 
-            child_new = []
-            index = 0
-            for el in parent_orig:
-                if isinstance(el, int):
-                    child_new.append(child[index])
-                    index += 1
-                else:
-                    child_new.append(el)
-            
-
-            return child
-        else:
-            return parent
+        child_new = []
+        index = 0
+        for el in parent_orig:
+            if isinstance(el, int):
+                child_new.append(child[index])
+                index += 1
+            else:
+                child_new.append(el)
+        
+        return child_new
 
     ########################################
     ####### POPULATION REPLACEMENT #########
@@ -695,6 +681,7 @@ class GA:
         Returns:
             float: The best fitness score.
         """
+        #print(len(self.population))
         best_fitness = min(self.fitness(solution) for solution in self.population)
 
         return best_fitness
@@ -720,19 +707,15 @@ class GA:
         while time.time() - start_time < self.time_deadline and consecutive_no_improvement < self.early_stopping_limit:
             # Selection: Choose tours from the current population to act as parents for the next generation
             selected_parents = self.SELECTION_METHODS[self.selection_method]()
-            
             # Crossover: Create new offspring from two parents.
             crossover_operator = self.CROSSOVER_OPERATORS[self.crossover_operator]
             offspring = crossover_operator(selected_parents)
-
             # Mutation: Make small changes to the offspring
             mutation_operator = self.MUTATION_OPERATORS[self.mutation_operator]
-            offspring = mutation_operator(offspring)
-
+            offspring = [mutation_operator(child) if random.random() < self.mut_rate else child for child in offspring]
             # Replacement: Create new population from the current population and the offspring
             replacement_strategy = self.POPULATION_REPLACEMENT_STRATEGIES[self.population_replacement_strategy]
             self.population = replacement_strategy(self.population, offspring)
-
             # Update current generation
             current_generation += 1
             
@@ -809,8 +792,8 @@ class GA:
         
         self.mutation_operator = kwargs.get('mutation_operator', "swap")
         self.crossover_operator = kwargs.get('crossover_operator', "edge")
-        self.selection_method = kwargs.get('selection_method', "tournament")
-        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "round_robin")
+        self.selection_method = kwargs.get('selection_method', "linear_ranking")
+        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "lambda_mu")
 
         self.population_size = kwargs.get('population_size', 100)
         self.cross_rate = kwargs.get('cross_rate', 0.80)
@@ -826,6 +809,6 @@ class GA:
 
     ########################################
         
-ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
-ga_instance.run()
+#ga_instance = GA(time_deadline=180, problem_path='instances/instance01.txt')
+#ga_instance.run()
 

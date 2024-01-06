@@ -31,7 +31,6 @@ SELECTION_METHODS = (
 POPULATION_REPLACEMENT_STRATEGIES = (
     'generational', 
     'replace_worst_genitor', 
-    'elitism', 
     'round_robin', 
     'lambda_mu'
 )
@@ -72,7 +71,7 @@ def grid_search_operators_new(instances):
     total_configs = len(MUTATION_OPERATORS) * len(CROSSOVER_OPERATORS) * len(SELECTION_METHODS) * len(POPULATION_REPLACEMENT_STRATEGIES)
     # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
     current_config = 0
-    total_elapsed_time = 4320
+    total_elapsed_time = 0
 
     # initialize a list to store results for each combination of instances and configurations
     all_results = []
