@@ -1,5 +1,6 @@
 import random
 import time
+import numpy as np
 class GA:
 
     ########################################
@@ -19,6 +20,10 @@ class GA:
                 if rand_val <= cumulative_prob:
                     selected_parents.append(self.population[i])
                     break
+        
+        # Ensure the number of selected parents is even
+        if len(selected_parents) % 2 != 0:
+            selected_parents.pop()
 
         return selected_parents
 
@@ -40,6 +45,10 @@ class GA:
                     selected_parents.append(sorted_population[i])
                     break
 
+        # Ensure the number of selected parents is even
+        if len(selected_parents) % 2 != 0:
+            selected_parents.pop()
+
         return selected_parents
    
     def exponential_ranking_selection(self):
@@ -59,32 +68,42 @@ class GA:
                 if rand_val <= cumulative_prob:
                     selected_parents.append(sorted_population[i])
                     break
+        
+        # Ensure the number of selected parents is even
+        if len(selected_parents) % 2 != 0:
+            selected_parents.pop()
 
         return selected_parents
 
     def tournament_selection(self):
-        k_percentage = self.tournament_size
-        p = self.tournament_probability
-
         selected_parents = []
         
         # Precalculate fitness values for all individuals in the population
         fitness_values = {str(ind): self.fitness(ind) for ind in self.population}
+        k = int(self.tournament_size * len(self.population))
+        # Precalculate tournaments
+        tournaments = [random.sample(self.population, k) for _ in range(self.population_size)]
         
-        for _ in range(self.population_size):
-            k = int(k_percentage * len(self.population))
-
-            tournament = random.sample(self.population, k)  # Select k individuals randomly
-            if random.random() < p:
-                best_individual = max(tournament, key=lambda x: fitness_values[str(x)])  # Select the best individual
+        for tournament in tournaments:
+            if random.random() < self.tournament_probability:
+                best_individual = max(tournament, key=lambda x: fitness_values[str(x)])
                 selected_parents.append(best_individual)
             else:
-                selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
+                selected_parents.append(random.choice(tournament))
+
+        # Ensure the number of selected parents is even
+        if len(selected_parents) % 2 != 0:
+            selected_parents.pop()
 
         return selected_parents
         
     def uniform_selection(self):
         selected_parents = random.choices(self.population, k=self.population_size)
+
+        # Ensure the number of selected parents is even
+        if len(selected_parents) % 2 != 0:
+            selected_parents.pop()
+            
         return selected_parents
 
     ########################################
