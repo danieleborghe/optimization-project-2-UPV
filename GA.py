@@ -67,15 +67,20 @@ class GA:
         p = self.tournament_probability
 
         selected_parents = []
+        
+        # Precalculate fitness values for all individuals in the population
+        fitness_values = {str(ind): self.fitness(ind) for ind in self.population}
+        
         for _ in range(self.population_size):
             k = int(k_percentage * len(self.population))
 
             tournament = random.sample(self.population, k)  # Select k individuals randomly
             if random.random() < p:
-                best_individual = max(tournament, key=self.fitness)  # Select the best individual
+                best_individual = max(tournament, key=lambda x: fitness_values[str(x)])  # Select the best individual
                 selected_parents.append(best_individual)
             else:
                 selected_parents.append(random.choice(tournament))  # Randomly select from the tournament
+
         return selected_parents
         
     def uniform_selection(self):
@@ -502,6 +507,10 @@ class GA:
         combined_population = population + offspring
         
         matches = int(matches_percentage * len(combined_population))
+        
+        # Precalculate fitness values for all individuals in the combined population
+        fitness_values = {str(ind): self.fitness(ind) for ind in combined_population}
+        
         # Sample all tournament individuals at once
         tournament_samples = [random.sample(combined_population, matches) for _ in range(len(combined_population))]
         
@@ -510,12 +519,13 @@ class GA:
         
         for tournament_sample in tournament_samples:
             # Find the individual with the maximum victories in the tournament
-            winner = max(combined_population, key=lambda x: sum(self.fitness(x) < self.fitness(opponent) for opponent in tournament_sample))
+            winner = max(tournament_sample, key=lambda x: fitness_values[str(x)])
             
             # Add the winner to the selected population
             selected_population.append(winner)
         
-        return selected_population
+        selected_population.sort(key=lambda x: fitness_values[str(x)])
+        return selected_population[:len(population)]
     
     # 𝝀-𝝁 REPLACEMENT
     def lambda_mu_replacement(self, population, offspring):
@@ -780,8 +790,8 @@ class GA:
         
         self.mutation_operator = kwargs.get('mutation_operator', "swap")
         self.crossover_operator = kwargs.get('crossover_operator', "edge")
-        self.selection_method = kwargs.get('selection_method', "linear_ranking")
-        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "generational")
+        self.selection_method = kwargs.get('selection_method', "tournament")
+        self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "round_robin")
 
         self.population_size = kwargs.get('population_size', 100)
         self.cross_rate = kwargs.get('cross_rate', 0.80)
@@ -797,6 +807,6 @@ class GA:
 
     ########################################
         
-#ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
-#ga_instance.run()
+ga_instance = GA(time_deadline=60, problem_path='instances/instance02.txt')
+ga_instance.run()
 
