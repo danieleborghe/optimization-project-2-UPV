@@ -11,17 +11,16 @@ INSTANCES_DIRECTORY = "instances"       # instances directory name
 
 # Define the different types of operators
 MUTATION_OPERATORS = (
-    'swap', 
-    'insertion', 
-    'scramble', 
-    'inversion',
+    #'swap', 
+    #'insertion', 
+    #'scramble', 
+    #'inversion',
     "mixed"
 )
 CROSSOVER_OPERATORS = (
     'cut_and_crossfill', 
     'pmx', 
     'edge',
-    "mixed"
 )
 SELECTION_METHODS = (
     'roulette_wheel', 
