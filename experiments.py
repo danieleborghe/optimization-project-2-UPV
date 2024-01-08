@@ -5,8 +5,8 @@ import time
 import os
 
 # CONSTANTS
-N_RUNS = 1                              # number of runs for each configuration
-TIME_DEADLINE = 10                     # time deadline for each run in seconds
+N_RUNS = 3                              # number of runs for each configuration
+TIME_DEADLINE = 180                     # time deadline for each run in seconds
 INSTANCES_DIRECTORY = "instances"       # instances directory name
 
 # Define the different types of operators
@@ -278,7 +278,7 @@ def save_results_to_csv(results, filename):
 def main():
     instances = {}
 
-    for i in range(1, 2):
+    for i in range(1, 9):
         instances[f"instance_{i}"] = os.path.join(INSTANCES_DIRECTORY, f"instance0{i}.txt")
 
     # Choose which grid search to run
