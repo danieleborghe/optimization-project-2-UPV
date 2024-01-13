@@ -11,29 +11,30 @@ INSTANCES_DIRECTORY = "instances"       # instances directory name
 
 # Define the different types of operators
 MUTATION_OPERATORS = (
-    #'swap', 
-    #'insertion', 
-    #'scramble', 
-    #'inversion',
-    "mixed"
+    'swap', 
+    'insertion', 
+    'scramble', 
+    'inversion',
+    "mixed",
 )
 CROSSOVER_OPERATORS = (
-    'cut_and_crossfill', 
-    'pmx', 
-    'edge',
+    #'cut_and_crossfill', 
+    #'pmx', 
+    #'edge',
+    "scx",
 )
 SELECTION_METHODS = (
-    'roulette_wheel', 
-    'linear_ranking', 
-    'exponential_ranking', 
-    'tournament', 
-    'uniform'
+    #'roulette_wheel', 
+    #'linear_ranking', 
+    #'exponential_ranking', 
+    #'tournament', 
+    'uniform',
 )
 POPULATION_REPLACEMENT_STRATEGIES = (
-    'generational', 
-    'replace_worst_genitor', 
-    'round_robin', 
-    'lambda_mu'
+    #'generational', 
+    #'replace_worst_genitor', 
+    #'round_robin', 
+    'lambda_mu',
 )
 
 POPULATION_SIZES = (25, 50, 100, 200, 400)
@@ -187,9 +188,9 @@ def grid_search_hyperparameters_new(instances):
                         'population_size': pop_size,
                         'cross_rate': cross_rate,
                         'mut_rate': mut_rate,
-                        'early_stopping_limit': es_limit
+                        'early_stopping_limit': es_limit,
                     }
-                                       
+                                    
                     # initialize lists to store results for each instance
                     fitness_across_instances = []
                     run_elapsed_time_across_instances = []

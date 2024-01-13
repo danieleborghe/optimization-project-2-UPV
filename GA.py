@@ -204,9 +204,83 @@ class GA:
 
         return [child_new]
     
+    def scx_crossover(self, parent1_orig, parent2_orig):
+        parent1 = [value for value in parent1_orig if not isinstance(value, str)]
+        parent2 = [value for value in parent2_orig if not isinstance(value, str)]
+
+        distance_matrix = self.distance_matrix
+        num_cities = len(parent1)
+        offspring1 = [-1] * num_cities
+        offspring2 = [-1] * num_cities
+        
+        # Step 1: Choose the city stored in the first gene of parent 1 as the start city
+        start_city = parent1[0]
+        offspring1[0] = start_city
+        offspring2[0] = start_city
+        
+        # Step 2: Construct offspring
+        for i in range(1, num_cities):
+            last_city = offspring1[i - 1]
+            
+            # Find the two cities next to and in the right of the last visited city in parent 1
+            idx_p1 = parent1.index(last_city)
+            city_alpha = parent1[(idx_p1 + 1) % num_cities]
+            city_beta = parent1[(idx_p1 + 2) % num_cities]
+            
+            # Check if the cities are visited
+            if city_alpha not in offspring1 and city_beta not in offspring1:
+                # Both cities are unvisited, compare distances
+                dp_alpha = distance_matrix[last_city][city_alpha]
+                dp_beta = distance_matrix[last_city][city_beta]
+                
+                if dp_alpha < dp_beta:
+                    offspring1[i] = city_alpha
+                else:
+                    offspring1[i] = city_beta
+            elif city_alpha not in offspring1:
+                # City alpha is unvisited, select it
+                offspring1[i] = city_alpha
+            elif city_beta not in offspring1:
+                # City beta is unvisited, select it
+                offspring1[i] = city_beta
+            else:
+                # Both cities are visited, find the closest unvisited city in parent 1
+                unvisited_cities_p1 = [city for city in parent1 if city not in offspring1]
+                closest_city_p1 = min(unvisited_cities_p1, key=lambda x: distance_matrix[last_city][x])
+                offspring1[i] = closest_city_p1
+        
+        # Repeat the process for offspring 2 using parent 2 as the template
+        for i in range(1, num_cities):
+            last_city = offspring2[i - 1]
+            idx_p2 = parent2.index(last_city)
+            city_alpha = parent2[(idx_p2 + 1) % num_cities]
+            city_beta = parent2[(idx_p2 + 2) % num_cities]
+            
+            if city_alpha not in offspring2 and city_beta not in offspring2:
+                dp_alpha = distance_matrix[last_city][city_alpha]
+                dp_beta = distance_matrix[last_city][city_beta]
+                
+                if dp_alpha < dp_beta:
+                    offspring2[i] = city_alpha
+                else:
+                    offspring2[i] = city_beta
+            elif city_alpha not in offspring2:
+                offspring2[i] = city_alpha
+            elif city_beta not in offspring2:
+                offspring2[i] = city_beta
+            else:
+                unvisited_cities_p2 = [city for city in parent2 if city not in offspring2]
+                closest_city_p2 = min(unvisited_cities_p2, key=lambda x: distance_matrix[last_city][x])
+                offspring2[i] = closest_city_p2
+
+        child1_new = [offspring1.pop(0) if isinstance(el, int) else el for el in parent1_orig]
+        child2_new = [offspring2.pop(0) if isinstance(el, int) else el for el in parent2_orig]
+        
+        return [child1_new, child2_new]
+
     def mixed_crossover(self, parent1, parent2):
         # List of functions
-        crossovers = [self.edge_crossover, self.partially_mapped_crossover, self.cut_and_crossfill_crossover]
+        crossovers = [self.edge_crossover, self.partially_mapped_crossover, self.cut_and_crossfill_crossover, self.scx_crossover]
         random_crossover = random.choice(crossovers)
         # Randomly choose a function
         return random_crossover(parent1, parent2)
@@ -386,6 +460,7 @@ class GA:
         self.num_locations = num_locations
         self.num_vehicles = num_vehicles
         self.distance_matrix = distance_matrix
+        #print(self.distance_matrix)
     
     ########################################
         
@@ -583,9 +658,9 @@ class GA:
         best_solution = self.get_best_solution()
         best_fitness = self.get_best_fitness()
 
-        #print(f"Best Solution (Generation {current_generation}):")
-        #print(f"Route: {best_solution}")
-        #print(f"Total Distance: {best_fitness}")
+        print(f"Best Solution (Generation {current_generation}):")
+        print(f"Route: {best_solution}")
+        print(f"Total Distance: {best_fitness}")
 
     #in kwargs we should receive population_size
     def __init__(self, time_deadline, problem_path, **kwargs):
@@ -609,7 +684,7 @@ class GA:
             'cut_and_crossfill': self.cut_and_crossfill_crossover,
             "pmx": self.partially_mapped_crossover,
             "edge": self.edge_crossover,
-            "mixed": self.mixed_crossover,
+            "scx": self.scx_crossover,
         }
 
         self.SELECTION_METHODS = {
@@ -639,17 +714,16 @@ class GA:
         self.random_seed = kwargs.get('random_seed', 0)
         random.seed(self.random_seed)
         
-        self.mutation_operator = kwargs.get('mutation_operator', "swap")
-        self.crossover_operator = kwargs.get('crossover_operator', "edge")
-        self.selection_method = kwargs.get('selection_method', "linear_ranking")
+        self.mutation_operator = kwargs.get('mutation_operator', "mixed")
+        self.crossover_operator = kwargs.get('crossover_operator', "cut_and_crossfill")
+        self.selection_method = kwargs.get('selection_method', "roulette_wheel")
         self.population_replacement_strategy = kwargs.get('population_replacement_strategy', "lambda_mu")
 
-        self.population_size = kwargs.get('population_size', 100)
-        self.cross_rate = kwargs.get('cross_rate', 0.80)
-        self.mut_rate = kwargs.get('mut_rate', 0.30)
-        self.early_stopping_limit = kwargs.get("early_stopping_limit", 50)
+        self.population_size = kwargs.get('population_size', 400)
+        self.cross_rate = kwargs.get('cross_rate', 1.00)
+        self.mut_rate = kwargs.get('mut_rate', 0.50)
+        self.early_stopping_limit = kwargs.get("early_stopping_limit", 100)
 
-        self.elite_percentage = kwargs.get("elite_percentage", 0.2)
         self.round_robin_matches = kwargs.get("elite_percentage", 0.3)
         self.exponential_ranking_c = kwargs.get("exponential_ranking_c", 0.5)
         self.linear_ranking_s = kwargs.get("linear_ranking_s", 1.5)
@@ -658,6 +732,6 @@ class GA:
 
     ########################################
         
-#ga_instance = GA(time_deadline=180, problem_path='instances/instance01.txt')
-#ga_instance.run()
+ga_instance = GA(time_deadline=180, problem_path='instances/instance01.txt', random_seed=0)
+ga_instance.run()
 
