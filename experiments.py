@@ -18,22 +18,22 @@ MUTATION_OPERATORS = (
     "mixed",
 )
 CROSSOVER_OPERATORS = (
-    #'cut_and_crossfill', 
-    #'pmx', 
-    #'edge',
+    'cut_and_crossfill', 
+    'pmx', 
+    'edge',
     "scx",
 )
 SELECTION_METHODS = (
-    #'roulette_wheel', 
-    #'linear_ranking', 
-    #'exponential_ranking', 
-    #'tournament', 
+    'roulette_wheel', 
+    'linear_ranking', 
+    'exponential_ranking', 
+    'tournament', 
     'uniform',
 )
 POPULATION_REPLACEMENT_STRATEGIES = (
-    #'generational', 
-    #'replace_worst_genitor', 
-    #'round_robin', 
+    'generational', 
+    'replace_worst_genitor', 
+    'round_robin', 
     'lambda_mu',
 )
 
@@ -67,7 +67,7 @@ def run_single_configuration(configuration, instance):
 
     return average_fitness, average_elapsed_time, total_elapsed_time    # return the average fitness and the elapsed time
 
-def grid_search_operators_new(instances):
+def grid_search_operators(instances):
     # calculate the total configurations to test (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
     total_configs = len(MUTATION_OPERATORS) * len(CROSSOVER_OPERATORS) * len(SELECTION_METHODS) * len(POPULATION_REPLACEMENT_STRATEGIES)
     # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
@@ -167,7 +167,7 @@ def grid_search_operators_new(instances):
     # save results to CSV
     save_results_to_csv(all_results, "results_operators.csv")
     
-def grid_search_hyperparameters_new(instances):
+def grid_search_hyperparameters(instances):
     # calculate the total configurations to test (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
     total_configs = len(POPULATION_SIZES) * len(CROSSOVER_RATES) * len(MUTATION_RATES) * len(EARLY_STOPPING_LIMIT)
     # set the counter of configurations tested to 0 (JUST FOR SEE THE PROGRESS OF THE GRID-SEARCH)
@@ -286,10 +286,10 @@ def main():
     choice = input("Enter 1 for Operators Grid Search, 2 for Hyperparameters Grid Search: ")
 
     if choice == '1':
-        grid_search_operators_new(instances)
+        grid_search_operators(instances)
         print("Operators Grid Search completed.")
     elif choice == '2':
-        grid_search_hyperparameters_new(instances)
+        grid_search_hyperparameters(instances)
         print("Hyperparameters Grid Search completed.")
     else:
         print("Invalid choice. Please enter 1 or 2.")
