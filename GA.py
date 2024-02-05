@@ -9,29 +9,41 @@ class GA:
     
     # ROULETTE WHEEL SELECTION METHOD
     def roulette_wheel_selection(self):
+        # Calculate fitness values for each individual in the population
         fitness_values = np.array([self.fitness(individual) for individual in self.population])
+        
+        # Calculate total fitness of the population
         total_fitness = np.sum(fitness_values)
+        
+        # Calculate selection probabilities based on fitness values
         selection_probs = fitness_values / total_fitness
 
+        # Calculate cumulative probabilities
         cumulative_probs = np.cumsum(selection_probs)
         
+        # Generate random values for selection
         rand_vals = np.random.rand(self.population_size)
 
         selected_parents = []
 
+        # Select individuals based on roulette wheel method
         for rand_val in rand_vals:
             index = np.searchsorted(cumulative_probs, rand_val, side='right')
             selected_parents.append(self.population[index])
 
-        # ensure the number of selected parents is even
+        # Ensure the number of selected parents is even
         if len(selected_parents) % 2 != 0:
             selected_parents.pop()
 
         return selected_parents
 
+
     # LINEAR RANKING SELECTION METHOD
     def linear_ranking_selection(self):
+        # Sort indices based on fitness values in descending order
         sorted_indices = np.argsort([self.fitness(individual) for individual in self.population])[::-1]
+        
+        # Calculate selection probabilities using linear ranking
         selection_probs = (
             (2 - self.linear_ranking_s) / self.population_size
             + (2 * np.arange(self.population_size) * (self.linear_ranking_s - 1))
@@ -40,6 +52,7 @@ class GA:
 
         selected_parents = []
 
+        # Select individuals based on linear ranking method
         rand_vals = np.random.rand(self.population_size)
         cumulative_probs = np.cumsum(selection_probs)
 
@@ -47,16 +60,18 @@ class GA:
             index = np.searchsorted(cumulative_probs, rand_val, side='right')
             selected_parents.append(self.population[sorted_indices[index]])
 
-        # ensure the number of selected parents is even
+        # Ensure the number of selected parents is even
         if len(selected_parents) % 2 != 0:
             selected_parents.pop()
 
         return selected_parents
    
-   # EXPONENTIAL SELECTION METHOD
+    # EXPONENTIAL SELECTION METHOD
     def exponential_ranking_selection(self):
+        # Sort indices based on fitness values in descending order
         sorted_indices = np.argsort([self.fitness(individual) for individual in self.population])[::-1]
         
+        # Calculate selection probabilities using exponential ranking
         c = self.exponential_ranking_c
         probs = np.maximum(
             0,
@@ -65,6 +80,7 @@ class GA:
 
         selected_parents = []
 
+        # Select individuals based on exponential ranking method
         rand_vals = np.random.rand(self.population_size)
         cumulative_probs = np.cumsum(probs)
 
@@ -72,7 +88,7 @@ class GA:
         
         selected_parents = [self.population[sorted_indices[i]] for i in indices]
 
-        # ensure the number of selected parents is even
+        # Ensure the number of selected parents is even
         if len(selected_parents) % 2 != 0:
             selected_parents.pop()
 
@@ -82,19 +98,24 @@ class GA:
     def tournament_selection(self):
         selected_parents = []
         
+        # Calculate fitness values for each individual in the population
         fitness_values = {str(ind): self.fitness(ind) for ind in self.population}
+        
+        # Determine the number of individuals in each tournament
         k = int(self.tournament_size * len(self.population))
 
+        # Create tournaments by randomly selecting individuals
         tournaments = [random.sample(self.population, k) for _ in range(self.population_size)]
         
         for tournament in tournaments:
+            # Perform tournament selection
             if random.random() < self.tournament_probability:
                 best_individual = max(tournament, key=lambda x: fitness_values[str(x)])
                 selected_parents.append(best_individual)
             else:
                 selected_parents.append(random.choice(tournament))
 
-        # ensure the number of selected parents is even
+        # Ensure the number of selected parents is even
         if len(selected_parents) % 2 != 0:
             selected_parents.pop()
 
@@ -116,12 +137,17 @@ class GA:
 
     # CUT-AND-CROSSFILL CROSSOVER
     def cut_and_crossfill_crossover(self, parent1_orig, parent2_orig):
+        # Extract integer values from parents
         parent1, parent2 = [value for value in parent1_orig if not isinstance(value, str)], [value for value in parent2_orig if not isinstance(value, str)]
+        
+        # Select a random position for crossover
         position = random.randint(1, len(parent1) - 2)
 
+        # Ensure parents have the same length
         if len(parent1) != len(parent2):
             raise ValueError("Parents must have the same length")
 
+        # Perform cut-and-crossfill crossover
         child1 = parent1[:position].copy()
         child2 = parent2[:position].copy()
 
@@ -133,6 +159,7 @@ class GA:
             if value not in child2:
                 child2.append(value)
 
+        # Rearrange elements to match the original order
         child1_new = [child1.pop(0) if isinstance(el, int) else el for el in parent1_orig]
         child2_new = [child2.pop(0) if isinstance(el, int) else el for el in parent2_orig]
 
@@ -141,12 +168,19 @@ class GA:
     
     # PARTIALLY MAPPED CROSSOVER (PMX)
     def partially_mapped_crossover(self, parent1_orig, parent2_orig):
+        # Extract integer values from parents
         parent1, parent2 = [v for v in parent1_orig if not isinstance(v, str)], [v for v in parent2_orig if not isinstance(v, str)]
+        
+        # Determine the size of the parents
         size = len(parent1)
+        
+        # Randomly choose two cut points
         cut1, cut2 = sorted([random.randint(0, size), random.randint(0, size)])
 
+        # Initialize the children with the genetic material between the cut points
         child1, child2 = parent1[cut1:cut2], parent2[cut1:cut2]
 
+        # Perform partially mapped crossover
         for i in range(size):
             if cut1 <= i < cut2:
                 continue
@@ -161,6 +195,7 @@ class GA:
             child1.append(gene2)
             child2.append(gene1)
 
+        # Rearrange elements to match the original order
         child1_new = [child1.pop(0) if isinstance(el, int) else el for el in parent1_orig]
         child2_new = [child2.pop(0) if isinstance(el, int) else el for el in parent2_orig]
 
@@ -168,9 +203,11 @@ class GA:
     
     # EDGE CROSSOVER
     def edge_crossover(self, parent1_orig, parent2_orig):
+        # Extract integer values from parents
         parent1 = [value for value in parent1_orig if not isinstance(value, str)]
         parent2 = [value for value in parent2_orig if not isinstance(value, str)]
 
+        # Build an adjacent table for each parent
         adjacent_table = {}
 
         for parent in [parent1, parent2]:
@@ -182,9 +219,11 @@ class GA:
                 adjacent_table[value].add(prev_value)
                 adjacent_table[value].add(next_value)
 
+        # Initialize the child with a random starting value
         child = set()
         X = random.choice(parent1)
 
+        # Perform edge crossover
         while len(child) != len(parent1):
             child.add(X)
             adjacent_table[X] = set()
@@ -199,8 +238,8 @@ class GA:
                 remaining_values = set(parent1) - child
                 X = random.choice(list(remaining_values)) if remaining_values else None
 
+        # Rearrange elements to match the original order
         child = list(child)
-
         child_new = [child.pop(0) if isinstance(el, int) else el for el in parent1_orig]
 
         return [child_new]
@@ -287,82 +326,106 @@ class GA:
 
     # SWAP MUTATION
     def swap_mutation(self, parent):
+        # Make a copy of the parent for later rearrangement
         parent_orig = parent.copy()
+        # Extract integer values from the parent
         parent = [value for value in parent_orig if not isinstance(value, str)]
 
+        # Create a child by copying the parent
         child = parent.copy()
 
+        # Choose two distinct positions for mutation
         i = random.randint(1, len(child) - 1)
         j_candidates = [pos for pos in range(1, len(child) - 1) if pos != i]
         j = random.choice(j_candidates)
 
+        # Swap the values at the chosen positions
         child[i], child[j] = child[j], child[i]
 
+        # Rearrange elements to match the original order
         child_new = [child.pop(0) if isinstance(el, int) else el for el in parent_orig]
 
         return child_new
 
     # INSERTION MUTATION
     def insertion_mutation(self, parent):
+        # Make a copy of the parent for later rearrangement
         parent_orig = parent.copy()
+        # Extract integer values from the parent
         parent = [value for value in parent_orig if not isinstance(value, str)]
 
+        # Create a child by copying the parent
         child = parent.copy()
 
+        # Choose two distinct positions for mutation
         i = random.randint(1, len(child) - 1)
         j_candidates = [pos for pos in range(1, len(child) - 1) if pos != i]
         j = random.choice(j_candidates)
 
+        # Move the element at position j to position i + 1
         moved_element = child.pop(j)
         child.insert(i + 1, moved_element)
 
+        # Rearrange elements to match the original order
         child_new = [child.pop(0) if isinstance(el, int) else el for el in parent_orig]
 
         return child_new
     
     # SCRAMBLE MUTATION
     def scramble_mutation(self, parent):
+        # Make a copy of the parent for later rearrangement
         parent_orig = parent.copy()
+        # Extract integer values from the parent
         parent = [value for value in parent_orig if not isinstance(value, str)]
 
+        # Create a child by copying the parent
         child = parent.copy()
 
+        # Choose two distinct positions for mutation
         i = random.randint(1, len(child) - 1)
         j_candidates = [pos for pos in range(1, len(child) - 1) if pos != i]
         j = random.choice(j_candidates)
 
+        # Scramble the subsequence between positions i and j
         subsequence = child[i:j + 1]
         random.shuffle(subsequence)
         child[i:j + 1] = subsequence
 
+        # Rearrange elements to match the original order
         child_new = [child.pop(0) if isinstance(el, int) else el for el in parent_orig]
 
         return child_new
     
     # INVERSION MUTATION
     def inversion_mutation(self, parent):
+        # Make a copy of the parent for later rearrangement
         parent_orig = parent.copy()
+        # Extract integer values from the parent
         parent = [value for value in parent_orig if not isinstance(value, str)]
 
+        # Create a child by copying the parent
         child = parent.copy()
 
+        # Choose two distinct positions for mutation
         i = random.randint(1, len(child) - 1)
         j_candidates = [pos for pos in range(1, len(child) - 1) if pos != i]
         j = random.choice(j_candidates)
 
+        # Invert the subsequence between positions i and j
         child[i:j + 1] = reversed(child[i:j + 1])
 
+        # Rearrange elements to match the original order
         child_new = [child.pop(0) if isinstance(el, int) else el for el in parent_orig]
 
         return child_new
     
     # RANDOM MIXED MUTATION
     def mixed_mutation(self, parent):
-        # define the mutation operators
+        # Define the mutation operators
         mutations = [self.swap_mutation, self.inversion_mutation, self.insertion_mutation, self.scramble_mutation]
-        # randomly choose a function
+        # Randomly choose a function
         random_mutation = random.choice(mutations)
-        # apply the chosen function to the parent
+        # Apply the chosen function to the parent
         return random_mutation(parent)
 
     ########################################
@@ -371,6 +434,7 @@ class GA:
 
     # GENERATIONAL REPLACEMENT
     def generational_replacement(self, population, offspring):
+        # Update the population based on generational replacement
         if len(offspring) > len(population):
             new_population = sorted(offspring, key=self.fitness)[:len(population)]
         elif len(offspring) < len(population):
@@ -383,6 +447,7 @@ class GA:
 
     # REPLACE WORST (GENITOR) REPLACEMENT
     def replace_worst_replacement(self, population, offspring):
+        # Update the population by replacing the worst individuals with the offspring
         new_population = population.copy()
 
         if len(offspring) <= len(new_population):
@@ -395,6 +460,7 @@ class GA:
     
     # ROUND-ROBIN REPLACEMENT
     def round_robin_replacement(self, population, offspring):
+        # Update the population using round-robin replacement
         matches_percentage = self.round_robin_matches
         combined_population = population + offspring
         
@@ -416,6 +482,7 @@ class GA:
     
     # LAMBDA-MU REPLACEMENT
     def lambda_mu_replacement(self, population, offspring):
+        # Update the population using lambda-mu replacement
         combined_population = population + offspring
         combined_population.sort(key=self.fitness)
         new_population = combined_population[:len(population)]
@@ -672,6 +739,6 @@ class GA:
 
     ########################################
         
-#ga_instance = GA(time_deadline=180, problem_path='instances/instance01.txt')
-#ga_instance.run()
+ga_instance = GA(time_deadline=180, problem_path='instances/instance01.txt')
+ga_instance.run()
 
